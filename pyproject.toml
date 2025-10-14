@@ -7,6 +7,8 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+chromadb = "^1.1.1"
+loguru = "^0.7.2"
 
 
 [build-system]
