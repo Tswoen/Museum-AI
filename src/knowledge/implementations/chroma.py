@@ -8,7 +8,7 @@ from chromadb.config import Settings
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 from src.knowledge.base import KnowledgeBase
-# from src.knowledge.indexing import process_file_to_markdown, process_url_to_markdown
+from src.knowledge.indexing import process_file_to_markdown, process_url_to_markdown
 from src.knowledge.utils.kb_utils import (
     get_embedding_config,
     prepare_item_metadata,
@@ -136,9 +136,23 @@ class ChromaKB(KnowledgeBase):
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
             
-    def _split_json_into_chunks(self, json_content: str, file_id: str, filename: str, params: dict) -> list[dict]:
+    def split_json_into_chunks(self, json_content: str, file_id: str, filename: str, params: dict) -> list[dict]:
         """将JSON分割成块"""
-        chunks = split_json_into_chunks(json_content, file_id, filename, params)
+        import json
+        artifacts = json.loads(json_content)
+        chunks = []
+        for artifact in artifacts:
+            content = f"文物名称：{artifact ['name']}\n 文物描述：{artifact ['description']}"
+            chunk = {
+                "content": content,
+                "metadata": {
+                    "image_url": artifact ["image_url"],
+                    "detail_url": artifact ["detail_url"], 
+                    "file_id": file_id,
+                    "filename": filename
+                }
+            }
+            chunks.append (chunk)
         return chunks
 
     def _split_text_into_chunks(self, text: str, file_id: str, filename: str, params: dict) -> list[dict]:
@@ -200,7 +214,7 @@ class ChromaKB(KnowledgeBase):
                 
                 chunks = []
                 if content_type == "json":
-                    chunks = self._split_json_into_chunks(item, file_id, filename, params)
+                    chunks = self.split_json_into_chunks(item, file_id, filename, params)
                 else:
                     # 分割文本成块
                     chunks = self._split_text_into_chunks(markdown_content, file_id, filename, params)
