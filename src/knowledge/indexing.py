@@ -1,8 +1,9 @@
 import asyncio
 import os
 from pathlib import Path
+import traceback
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
     CSVLoader,
     JSONLoader,
@@ -370,6 +371,26 @@ async def process_file_to_markdown(file_path: str, params: dict | None = None) -
     else:
         # 尝试作为文本文件读取
         raise ValueError(f"Unsupported file type: {file_ext}")
+
+
+async def process_file_to_json(file_path: str, params: dict | None = None) -> str:
+    """
+    将JSON文件转换为Python字典
+
+    Args:
+        file_path: JSON文件路径
+        params: 处理参数
+
+    Returns:
+        JSON内容的字符串
+    """
+    try:
+        with open(file_path, 'r', encoding="utf-8") as f:
+            json_content = f.read()
+            return json_content
+    except Exception as e:
+        logger.error(f"Failed to load JSON file {file_path}: {e}")
+        raise ValueError(f"Traceback: {traceback.format_exc()}")
 
 
 async def process_url_to_markdown(url: str, params: dict | None = None) -> str:

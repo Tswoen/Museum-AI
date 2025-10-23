@@ -12,7 +12,8 @@ import datetime as dt
 from collections.abc import Iterable
 from zoneinfo import ZoneInfo
 
-UTC = dt.UTC
+# 兼容 Python 3.11 之前的版本，使用 timezone.utc
+UTC = dt.timezone.utc
 SHANGHAI_TZ = ZoneInfo("Asia/Shanghai")
 _ISO_Z_SUFFIX = "+00:00"
 

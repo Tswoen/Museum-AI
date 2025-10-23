@@ -1,0 +1,25 @@
+{
+  "databases": {
+    "kb_b3334d624989e3073d7487219ae440d8": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "embed_info": null,
+      "llm_info": null,
+      "metadata": {},
+      "created_at": "2025-10-23T07:24:52.179797Z"
+    },
+    "kb_83599c39a76af2e4b5bf8b66993a2ff2": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "embed_info": null,
+      "llm_info": null,
+      "metadata": {},
+      "created_at": "2025-10-23T08:06:35.466876Z"
+    }
+  },
+  "files": {},
+  "kb_type": "chroma",
+  "updated_at": "2025-10-23T08:44:14.415782Z"
+}

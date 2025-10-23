@@ -8,7 +8,7 @@ from chromadb.config import Settings
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 from src.knowledge.base import KnowledgeBase
-from src.knowledge.indexing import process_file_to_markdown, process_url_to_markdown
+from src.knowledge.indexing import process_file_to_markdown, process_file_to_json, process_url_to_markdown
 from src.knowledge.utils.kb_utils import (
     get_embedding_config,
     prepare_item_metadata,
@@ -60,7 +60,12 @@ class ChromaKB(KnowledgeBase):
         if db_id not in self.databases_meta:
             raise ValueError(f"Database {db_id} not found")
 
-        embed_info = self.databases_meta[db_id].get("embed_info", {})
+        # embed_info = self.databases_meta[db_id].get("embed_info", {})
+        # 先获取原始值（可能是 None、具体值或不存在）
+        embed_info = self.databases_meta[db_id].get("embed_info")
+        # 确保最终值为 {}（如果是 None 或不存在）
+        embed_info = embed_info if embed_info is not None else {}
+
         embedding_function = self._get_embedding_function(embed_info)
 
         # 创建或获取集合
@@ -141,15 +146,23 @@ class ChromaKB(KnowledgeBase):
         import json
         artifacts = json.loads(json_content)
         chunks = []
-        for artifact in artifacts:
+        for chunk_index, artifact in enumerate(artifacts):
             content = f"文物名称：{artifact ['name']}\n 文物描述：{artifact ['description']}"
             chunk = {
-                "content": content,
+                "content": content.strip(),
+                "id": f"{file_id}_chunk_{chunk_index}",
+                "file_id": file_id,
+                "filename": filename,
+                "chunk_index": chunk_index,
+                "source": filename,
+                "chunk_id": f"{file_id}_chunk_{chunk_index}",
                 "metadata": {
                     "image_url": artifact ["image_url"],
                     "detail_url": artifact ["detail_url"], 
-                    "file_id": file_id,
-                    "filename": filename
+                    "full_doc_id": file_id,
+                    "source": filename,
+                    "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
+                    "chunk_type": "normal",
                 }
             }
             chunks.append (chunk)
@@ -208,13 +221,13 @@ class ChromaKB(KnowledgeBase):
                 if content_type == "file":
                     markdown_content = await process_file_to_markdown(item, params=params)
                 elif content_type == "json":
-                    pass
+                    json_content = await process_file_to_json(item, params=params)
                 else:  # URL
                     markdown_content = await process_url_to_markdown(item, params=params)
                 
                 chunks = []
                 if content_type == "json":
-                    chunks = self.split_json_into_chunks(item, file_id, filename, params)
+                    chunks = self.split_json_into_chunks(json_content, file_id, filename, params)
                 else:
                     # 分割文本成块
                     chunks = self._split_text_into_chunks(markdown_content, file_id, filename, params)

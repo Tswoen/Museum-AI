@@ -1,0 +1,8 @@
+dimension INTEGER,
+    database_id TEXT NOT NULL REFERENCES databases(id) ON DELETE CASCADE,
+    UNIQUE (name, database_id)
+);
+
+-- Create default tenant and database
+INSERT OR REPLACE INTO tenants (id) VALUES ('default_tenant'); -- The default tenant id is 'default_tenant' others are UUIDs
+INSERT OR REPLACE INTO databases (id, name, tenant_id) VALUES ('00000000-0000-0000-0000-000000000000', 'defau
