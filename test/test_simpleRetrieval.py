@@ -17,6 +17,7 @@ from src.knowledge.implementations.chroma import ChromaKB
 from src.utils.logging_config import logger
 from src import config, knowledge_base
 from src.knowledge import KnowledgeBaseManager
+from src.knowledge.utils.image_embedding_utils import get_image_embedding
 
 class ChromaDBTester:
     """ChromaDB 测试类"""
@@ -107,6 +108,71 @@ class ChromaDBTester:
             logger.error(f"添加文档失败: {e}")
             return False
     
+    async def test_add_image_embeddings(self):
+        """测试添加图片嵌入"""
+        logger.info("=== 测试添加图片嵌入 ===")
+        
+        try:
+            # 检查JSON文件是否存在
+            json_file_path = "hubei_museum_artifacts.json"
+            if not os.path.exists(json_file_path):
+                # 如果在test目录下运行，尝试在上级目录查找
+                json_file_path = "../hubei_museum_artifacts.json"
+                if not os.path.exists(json_file_path):
+                    logger.error(f"找不到文物数据文件: {json_file_path}")
+                    return False
+            
+            logger.info(f"使用文物数据文件: {json_file_path}")
+            
+            # 直接添加JSON文件到知识库，让add_content方法自动解析
+            result = await self.kb.add_image_embeddings(
+                db_id=self.test_db_id,
+                items=[json_file_path],
+                params={"content_type": "json"}
+            )
+            
+            logger.info(f"图片嵌入添加结果: {result}")
+            logger.info("✓ 文物JSON文件图片嵌入添加成功")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"添加图片嵌入失败: {e}")
+            return False
+
+    async def test_query_image_embeddings(self):
+        """测试查询图片嵌入"""
+        logger.info("=== 测试查询图片嵌入 ===")
+        
+        try: 
+            # 测试博物馆文物相关查询
+            test_queries = [
+                "https://img.cjyun.org.cn/a/10695/202404/067ece7dec87d53e26bb9877ae51da87.jpeg",
+                "https://img.cjyun.org.cn/a/10695/202404/d21ca8b04b1a2468af5bbbe669ecd2f5.jpeg",
+                str(Path("saves/imgs/QQ20251024-172103.png")),
+            ]
+            
+            for query in test_queries:
+                logger.info(f"查询: {query}")
+                query_embedding = get_image_embedding(query)
+                # 执行查询
+                results = await self.kb.aquery(
+                    query_embeddings=query_embedding,
+                    db_id=self.test_db_id,
+                    top_k=5,
+                    similarity_threshold=0.1
+                )
+                
+                logger.info(f"查询结果数量: {len(results)}")
+                
+                for i, result in enumerate(results):
+                    logger.info(f"  结果 {i+1}:")
+                    logger.info(f"    元数据: {result['metadata']}")
+                    
+                    
+
+        except Exception as e:
+            logger.error(f"查询图片嵌入失败: {e}")
     async def test_query_documents(self):
         """测试查询文档"""
         logger.info("=== 测试查询文档 ===")
@@ -253,12 +319,18 @@ class ChromaDBTester:
             return
         
         # 运行各项测试
+        # tests = [
+        #     ("创建博物馆文物数据库", self.test_create_database),
+        #     ("添加文物文档", self.test_add_documents),
+        #     ("添加图片嵌入", self.test_add_image_embeddings),
+        #     ("查询文物信息", self.test_query_documents),
+        #     ("数据库操作", self.test_database_operations),
+        #     ("错误处理", self.test_error_handling),
+        # ]
         tests = [
             ("创建博物馆文物数据库", self.test_create_database),
-            ("添加文物文档", self.test_add_documents),
-            ("查询文物信息", self.test_query_documents),
-            ("数据库操作", self.test_database_operations),
-            ("错误处理", self.test_error_handling),
+            # ("添加图片嵌入", self.test_add_image_embeddings),
+            ("查询图片嵌入信息", self.test_query_image_embeddings),
         ]
         
         for test_name, test_func in tests:

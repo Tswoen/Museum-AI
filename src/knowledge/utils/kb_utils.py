@@ -132,7 +132,7 @@ def prepare_item_metadata(item: str, content_type: str, db_id: str) -> dict:
     """
     准备文件或URL的元数据
     """
-    if content_type == "file":
+    if content_type == "file" or content_type == "json":
         file_path = Path(item)
         file_id = f"file_{hashstr(str(file_path) + str(time.time()), 6)}"
         file_type = file_path.suffix.lower().replace(".", "")

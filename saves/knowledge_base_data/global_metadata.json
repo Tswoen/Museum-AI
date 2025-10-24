@@ -48,8 +48,57 @@
       "kb_type": "chroma",
       "created_at": "2025-10-23T08:44:09.594151Z",
       "additional_params": {}
+    },
+    "kb_b9d372d6bd5e3ac964dc700dac3f4fdb": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T08:59:53.268591Z",
+      "additional_params": {}
+    },
+    "kb_263a83cd3b709bd390ba1e5e40faa938": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T09:05:39.793311Z",
+      "additional_params": {}
+    },
+    "kb_7524df806b2ce4dab841b8cbb92756a4": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T09:10:48.750976Z",
+      "additional_params": {}
+    },
+    "kb_c9f63b6a502bacd34675da6c079b76ae": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T09:39:15.909733Z",
+      "additional_params": {}
+    },
+    "kb_787ed7775f081eb743e07ee01d1f5b40": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T09:44:52.789759Z",
+      "additional_params": {}
+    },
+    "kb_8316162de60043a397d9b75887abe54a": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T09:48:23.294046Z",
+      "additional_params": {}
+    },
+    "kb_9b44ca5bad3399890ff355b3713419fe": {
+      "name": "湖北省博物馆文物知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
+      "kb_type": "chroma",
+      "created_at": "2025-10-24T09:51:07.050284Z",
+      "additional_params": {}
     }
   },
-  "updated_at": "2025-10-23T08:44:09.594151Z",
+  "updated_at": "2025-10-24T09:51:07.051286Z",
   "version": "2.0"
 }

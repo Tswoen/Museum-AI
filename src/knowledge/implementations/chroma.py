@@ -1,12 +1,16 @@
 import asyncio
 import os
 import traceback
-from typing import Any
+from typing import Any, Optional, Union
 
 import chromadb
 from chromadb.config import Settings
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
-
+from chromadb.api.types import (
+    Embedding,
+    PyEmbedding,
+    OneOrMany,
+)
 from src.knowledge.base import KnowledgeBase
 from src.knowledge.indexing import process_file_to_markdown, process_file_to_json, process_url_to_markdown
 from src.knowledge.utils.kb_utils import (
@@ -15,9 +19,13 @@ from src.knowledge.utils.kb_utils import (
     split_text_into_chunks,
     split_text_into_qa_chunks,
 )
+from src.knowledge.utils.image_embedding_utils import get_image_embedding
 from src.utils import logger
 from src.utils.datetime_utils import utc_isoformat
 
+chroma_client = chromadb.Client()
+collection = chroma_client.create_collection(name="my_collection")
+collection.query
 
 class ChromaKB(KnowledgeBase):
     """基于 ChromaDB 的向量知识库实现"""
@@ -140,7 +148,36 @@ class ChromaKB(KnowledgeBase):
             logger.error(f"Failed to create vector collection for {db_id}: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
-            
+    def parse_json_into_embedding_chunks(self, json_content: str, file_id: str, filename: str, params: dict) -> list[dict]:
+        """将JSON解析成嵌入块"""
+        import json
+        artifacts = json.loads(json_content)
+        chunks = []
+        for chunk_index, artifact in enumerate(artifacts):
+            image_url = artifact ["image_url"]
+            image_embedding = get_image_embedding(image_url)
+            chunk = {
+                "embeddings": image_embedding,
+                "id": f"{file_id}_chunk_{chunk_index}",
+                "file_id": file_id,
+                "filename": filename,
+                "chunk_index": chunk_index,
+                "source": filename,
+                "chunk_id": f"{file_id}_chunk_{chunk_index}",
+                "metadata": {
+                    "description": artifact ["description"],
+                    "name": artifact ["name"],
+                    "image_url": artifact ["image_url"],
+                    "detail_url": artifact ["detail_url"], 
+                    "full_doc_id": file_id,
+                    "source": filename,
+                    "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
+                    "chunk_type": "normal",
+                }
+            }
+            chunks.append (chunk)
+        return chunks
+
     def split_json_into_chunks(self, json_content: str, file_id: str, filename: str, params: dict) -> list[dict]:
         """将JSON分割成块"""
         import json
@@ -159,6 +196,7 @@ class ChromaKB(KnowledgeBase):
                 "metadata": {
                     "image_url": artifact ["image_url"],
                     "detail_url": artifact ["detail_url"], 
+                    "name": artifact ["name"],
                     "full_doc_id": file_id,
                     "source": filename,
                     "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
@@ -218,9 +256,7 @@ class ChromaKB(KnowledgeBase):
             self._add_to_processing_queue(file_id)
             try:
                 # 根据内容类型处理内容
-                if content_type == "file":
-                    markdown_content = await process_file_to_markdown(item, params=params)
-                elif content_type == "json":
+                if content_type == "json":
                     json_content = await process_file_to_json(item, params=params)
                 else:  # URL
                     markdown_content = await process_url_to_markdown(item, params=params)
@@ -277,8 +313,97 @@ class ChromaKB(KnowledgeBase):
 
         return processed_items_info
 
+    async def add_image_embeddings(self, db_id: str, items: list[str], params: dict | None) -> list[dict]:
+        """添加图片嵌入"""
+        if db_id not in self.databases_meta:
+            raise ValueError(f"Database {db_id} not found")
+
+        collection = await self._get_chroma_collection(db_id)
+        if not collection:
+            raise ValueError(f"Failed to get ChromaDB collection for {db_id}")
+
+        content_type = params.get("content_type", "file") if params else "file"
+        processed_items_info = []
+
+        for item in items:
+            # 准备文件元数据
+            metadata = prepare_item_metadata(item, content_type, db_id)
+            file_id = metadata["file_id"]
+            filename = metadata["filename"]
+
+            # 添加文件记录
+            file_record = metadata.copy()
+            self.files_meta[file_id] = file_record
+            self._save_metadata()
+
+            self._add_to_processing_queue(file_id)
+            try:
+                # 根据内容类型处理内容
+                if content_type == "file":
+                    markdown_content = await process_file_to_markdown(item, params=params)
+                elif content_type == "json":
+                    json_content = await process_file_to_json(item, params=params)
+                else:  # URL
+                    markdown_content = await process_url_to_markdown(item, params=params)
+                chunks = []
+                if content_type == "json":
+                    chunks = self.parse_json_into_embedding_chunks(json_content, file_id, filename, params)
+                else:
+                    # 分割文本成块
+                    chunks = self._split_text_into_chunks(markdown_content, file_id, filename, params)
+                logger.info(f"Split {filename} into {len(chunks)} chunks")
+
+                # 准备向量数据库插入的数据
+                if chunks:
+                    embeddings = [chunk["embeddings"] for chunk in chunks]
+                    metadatas = [chunk["metadata"] for chunk in chunks]
+                    ids = [chunk["id"] for chunk in chunks]
+
+                    # 插入到 ChromaDB - 分批处理以避免超出 OpenAI 批次大小限制
+                    batch_size = 64  # OpenAI 的最大批次大小限制
+                    total_batches = (len(chunks) + batch_size - 1) // batch_size
+
+                    for i in range(0, len(chunks), batch_size):
+                        batch_embeddings = embeddings[i : i + batch_size]
+                        batch_metadatas = metadatas[i : i + batch_size]
+                        batch_ids = ids[i : i + batch_size]
+
+                        await asyncio.to_thread(
+                            collection.add,
+                            embeddings=batch_embeddings,
+                            metadatas=batch_metadatas,
+                            ids=batch_ids,
+                        )
+
+                        batch_num = i // batch_size + 1
+                        logger.info(f"Processed batch {batch_num}/{total_batches} for {filename}")
+
+                logger.info(f"Inserted {content_type} {item} into ChromaDB. Done.")
+
+                # 更新状态为完成
+                self.files_meta[file_id]["status"] = "done"
+                self._save_metadata()
+                file_record["status"] = "done"
+
+            except Exception as e:
+                logger.error(f"处理{content_type} {item} 失败: {e}, {traceback.format_exc()}")
+                self.files_meta[file_id]["status"] = "failed"
+                self._save_metadata()
+                file_record["status"] = "failed"
+            finally:
+                self._remove_from_processing_queue(file_id)
+
+            processed_items_info.append(file_record)
+
+        return processed_items_info
+                    
     
-    async def aquery(self, query_text: str, db_id: str, **kwargs) -> list[dict]:
+    async def aquery(self, db_id: str ,query_text: str = None ,query_embeddings: Optional[
+            Union[
+                OneOrMany[Embedding],
+                OneOrMany[PyEmbedding],
+            ]
+        ] = None, **kwargs) -> list[dict]:
         """异步查询知识库"""
         collection = await self._get_chroma_collection(db_id)
         if not collection:
@@ -288,9 +413,18 @@ class ChromaKB(KnowledgeBase):
             top_k = kwargs.get("top_k", 10)
             similarity_threshold = kwargs.get("similarity_threshold", 0.0)
 
-            results = collection.query(
-                query_texts=[query_text], n_results=top_k, include=["documents", "metadatas", "distances"]
-            )
+            results = None
+            # 修复NumPy数组布尔判断问题
+            if query_embeddings is not None:
+                results = collection.query(
+                    query_embeddings=query_embeddings, n_results=top_k, include=["documents", "metadatas", "distances"]
+                )
+            elif query_text:
+                results = collection.query(
+                    query_texts=[query_text], n_results=top_k, include=["documents", "metadatas", "distances"]
+                )
+            else:
+                raise ValueError("Either query_text or query_embeddings must be provided")
 
             if not results or not results.get("documents") or not results["documents"][0]:
                 return []
