@@ -2,21 +2,21 @@
 name = "museum-ai"
 version = "0.1.0"
 description = ""
-authors = ["Twsoen <Twsoen@qq.com>"]
+authors = ["Tswoen <15071340+tswoen@user.noreply.gitee.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-chromadb = "^1.1.1"
-loguru = "^0.7.2"
+langchain-text-splitters = "^1.0.0"
+loguru = "^0.7.3"
 beautifulsoup4 = "^4.14.2"
 fitz = "^0.0.1.dev2"
-langchain = "^1.0.2"
-langchain-text-splitters = "^1.0.0"
 langchain-community = "^0.4"
-openai = "^2.6.0"
+openai = "^2.6.1"
 neo4j = "^6.0.2"
 cn-clip = "^1.6.0"
+fastapi = "^0.120.0"
+langgraph = "^1.0.1"
 
 
 [build-system]

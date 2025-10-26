@@ -398,12 +398,7 @@ class ChromaKB(KnowledgeBase):
         return processed_items_info
                     
     
-    async def aquery(self, db_id: str ,query_text: str = None ,query_embeddings: Optional[
-            Union[
-                OneOrMany[Embedding],
-                OneOrMany[PyEmbedding],
-            ]
-        ] = None, **kwargs) -> list[dict]:
+    async def aquery(self, db_id: str ,query_text: str = None ,img_path: str = None, **kwargs) -> list[dict]:
         """异步查询知识库"""
         collection = await self._get_chroma_collection(db_id)
         if not collection:

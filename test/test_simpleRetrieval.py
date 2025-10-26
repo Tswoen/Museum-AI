@@ -167,10 +167,9 @@ class ChromaDBTester:
                 
                 for i, result in enumerate(results):
                     logger.info(f"  结果 {i+1}:")
+                    logger.info(f"    相似度: {result['score']:.4f}")
                     logger.info(f"    元数据: {result['metadata']}")
                     
-                    
-
         except Exception as e:
             logger.error(f"查询图片嵌入失败: {e}")
     async def test_query_documents(self):
@@ -329,7 +328,7 @@ class ChromaDBTester:
         # ]
         tests = [
             ("创建博物馆文物数据库", self.test_create_database),
-            # ("添加图片嵌入", self.test_add_image_embeddings),
+            ("添加图片嵌入", self.test_add_image_embeddings),
             ("查询图片嵌入信息", self.test_query_image_embeddings),
         ]
         

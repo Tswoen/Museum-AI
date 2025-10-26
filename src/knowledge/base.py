@@ -2,6 +2,11 @@ import json
 import os
 from abc import ABC, abstractmethod
 from typing import Any
+from chromadb.api.types import (
+    Embedding,
+    PyEmbedding,
+    OneOrMany,
+)
 
 from src.utils import logger
 from src.utils.datetime_utils import coerce_any_to_utc_datetime, utc_isoformat
@@ -207,7 +212,7 @@ class KnowledgeBase(ABC):
         pass
 
     @abstractmethod
-    async def aquery(self, query_text: str, db_id: str, **kwargs) -> list[dict]:
+    async def aquery(self, db_id: str, query_text: str = None, img_path: str = None, **kwargs) -> list[dict]:
         """
         异步查询知识库
 
@@ -508,8 +513,13 @@ class KnowledgeBase(ABC):
         for db_id, meta in self.databases_meta.items():
 
             def make_retriever(db_id):
-                async def retriever(query_text):
-                    return await self.aquery(query_text, db_id)
+                async def retriever(query_text: str, query_embeddings: Optional[
+                    Union[
+                        OneOrMany[Embedding],
+                        OneOrMany[PyEmbedding],
+                    ]
+                ] = None):
+                    return await self.aquery(db_id, query_text, query_embeddings)
 
                 return retriever
 
