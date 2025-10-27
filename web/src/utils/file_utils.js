@@ -1,0 +1,106 @@
+// 文件相关工具函数
+import { FileTextFilled, FileMarkdownFilled, FilePdfFilled, FileWordFilled, FileExcelFilled, FileImageFilled, FileUnknownFilled } from '@ant-design/icons-vue';
+import { formatRelative, parseToShanghai } from '@/utils/time';
+
+// 根据文件扩展名获取文件图标
+export const getFileIcon = (filename) => {
+  if (!filename) return FileUnknownFilled
+
+  const extension = filename.toLowerCase().split('.').pop()
+
+  const iconMap = {
+    // 文本文件
+    'txt': FileTextFilled,
+    'text': FileTextFilled,
+    'log': FileTextFilled,
+
+    // Markdown文件
+    'md': FileMarkdownFilled,
+    'markdown': FileMarkdownFilled,
+
+    // PDF文件
+    'pdf': FilePdfFilled,
+
+    // Word文档
+    'doc': FileWordFilled,
+    'docx': FileWordFilled,
+
+    // Excel文档
+    'xls': FileExcelFilled,
+    'xlsx': FileExcelFilled,
+    'csv': FileExcelFilled,
+
+    // 图片文件
+    'jpg': FileImageFilled,
+    'jpeg': FileImageFilled,
+    'png': FileImageFilled,
+    'gif': FileImageFilled,
+    'bmp': FileImageFilled,
+    'svg': FileImageFilled,
+    'webp': FileImageFilled,
+  }
+
+  return iconMap[extension] || FileUnknownFilled
+}
+
+// 根据文件扩展名获取文件图标颜色
+export const getFileIconColor = (filename) => {
+  if (!filename) return '#8c8c8c'
+
+  const extension = filename.toLowerCase().split('.').pop()
+
+  const colorMap = {
+    // 文本文件 - 蓝色
+    'txt': '#1890ff',
+    'text': '#1890ff',
+    'log': '#1890ff',
+
+    // Markdown文件 - 深蓝色
+    'md': '#0050b3',
+    'markdown': '#0050b3',
+
+    // PDF文件 - 红色
+    'pdf': '#ff4d4f',
+
+    // Word文档 - 深蓝色
+    'doc': '#2f54eb',
+    'docx': '#2f54eb',
+
+    // Excel文档 - 绿色
+    'xls': '#52c41a',
+    'xlsx': '#52c41a',
+    'csv': '#52c41a',
+
+    // 图片文件 - 紫色
+    'jpg': '#722ed1',
+    'jpeg': '#722ed1',
+    'png': '#722ed1',
+    'gif': '#722ed1',
+    'bmp': '#722ed1',
+    'svg': '#722ed1',
+    'webp': '#722ed1',
+  }
+
+  return colorMap[extension] || '#8c8c8c'
+}
+
+// Format relative time with CST baseline
+export const formatRelativeTime = (value) => formatRelative(value)
+
+// 格式化标准时间
+export const formatStandardTime = (value) => {
+  const parsed = parseToShanghai(value)
+  if (!parsed) return '-'
+  return parsed.format('YYYY年MM月DD日 HH:mm:ss')
+}
+
+// 获取状态文本
+export const getStatusText = (status) => {
+  const statusMap = {
+    'done': '处理完成',
+    'failed': '处理失败',
+    'processing': '处理中',
+    'waiting': '等待处理'
+  }
+  return statusMap[status] || status
+}

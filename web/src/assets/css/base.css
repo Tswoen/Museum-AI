@@ -1,0 +1,113 @@
+
+/* color palette from <https://github.com/vuejs/theme> */
+/* https://material-foundation.github.io/material-theme-builder/ */
+:root {
+  --main-1000: #01151f;  /* 更深沉的深蓝黑 */
+  --main-900:  #023944;  /* 深海蓝 */
+  --main-800:  #035065;  /* 深蓝绿 */
+  --main-700:  #046a82;  /* 增加明度的蓝青色 */
+  --main-600:  #24839a;  /* 冷色调中略带灰 */
+  --main-500:  #3996ae;  /* 平衡且主色调友好 */
+  --main-400:  #5faec2;  /* 更加柔和的中亮蓝 */
+  --main-300:  #82c3d6;  /* 明亮通透，视觉清爽 */
+  --main-200:  #a3d8e8;  /* 比原先更清澈淡蓝 */
+  --main-100:  #c4eaf5;  /* 接近原色，但稍微柔和 */
+  --main-50:   #e1f6fb;  /* 极浅天蓝，适合背景过渡 */
+  --main-40:   #eaf3f5;  /* 淡灰蓝调 */
+  --main-30:   #f2fbfd;  /* 几近白的蓝调提示 */
+  --main-20:   #f5f9fa;  /* 比原配色更均匀些 */
+  --main-10:   #fafcfd;
+  --main-5:    #fcfefe;
+  --main-1:    #fefefe;
+  --main-0:    #ffffff;
+
+
+  --gray-10000: #000000; /* 保持纯黑 */
+  --gray-2000:  #0d0d0d; /* 更精致的暗灰，用于极深背景 */
+  --gray-1000:  #161616; /* 深灰黑，适用于主文本 */
+  --gray-900:   #1f1f1f;
+  --gray-800:   #333333; /* 标准深灰，适合背景 */
+  --gray-700:   #4d4d4d;
+  --gray-600:   #707070; /* 调和中灰，适合次要文本 */
+  --gray-500:   #999999; /* 更柔和的中灰色 */
+  --gray-400:   #bfbfbf;
+  --gray-300:   #d9d9d9; /* 修正了原300/200重复 */
+  --gray-200:   #e6e6e6; /* 稍微加深一点，便于分层 */
+  --gray-150:   #f0f0f0;
+  --gray-100:   #f2f2f2;
+  --gray-50:    #f7f7f7;
+  --gray-25:    #fafafa;
+  --gray-10:    #fcfcfc;
+  --gray-0:     #ffffff;
+
+  --main-color: #016179;
+  /* 鲜艳一点的 */
+  --main-bright: #0188a6;
+  --secondry-color: #4e616d;
+  --error-color: #ba1a1a;
+  --color-primary: #1c7796;
+  --color-primary-bg: #d6eef1;
+  --color-success: #45b30e;
+  --color-error: #c73234;
+  --color-info: #0058d4;
+
+  /* Chart Colors - 图表颜色系统 */
+  --chart-primary: var(--main-500);        /* 主色调 - 用于主要数据 */
+  --chart-primary-light: var(--main-400);  /* 主色调浅色 - 用于渐变 */
+  --chart-primary-dark: var(--main-600);   /* 主色调深色 - 用于强调 */
+
+  --chart-success: #52c41a;               /* 成功色 - 绿色 */
+  --chart-success-light: #95de64;        /* 成功色浅色 */
+  --chart-success-dark: #389e0d;         /* 成功色深色 */
+
+  --chart-warning: #faad14;               /* 警告色 - 橙色 */
+  --chart-warning-light: #ffd666;        /* 警告色浅色 */
+  --chart-warning-dark: #d48806;         /* 警告色深色 */
+
+  --chart-error: #f5222d;                /* 错误色 - 红色 */
+  --chart-error-light: #ff7875;          /* 错误色浅色 */
+  --chart-error-dark: #cf1322;          /* 错误色深色 */
+
+  --chart-info: #1890ff;                 /* 信息色 - 蓝色 */
+  --chart-info-light: #69c0ff;           /* 信息色浅色 */
+  --chart-info-dark: #096dd9;            /* 信息色深色 */
+
+  --chart-secondary: #722ed1;           /* 次要色 - 紫色 */
+  --chart-secondary-light: #b37feb;      /* 次要色浅色 */
+  --chart-secondary-dark: #531dab;       /* 次要色深色 */
+
+  --chart-accent: #13c2c2;               /* 强调色 - 青色 */
+  --chart-accent-light: #5cdbd3;        /* 强调色浅色 */
+  --chart-accent-dark: #08979c;          /* 强调色深色 */
+
+  /* Chart Palette - 图表调色板 */
+  --chart-palette-1: var(--chart-primary);
+  --chart-palette-2: #11cbe3;            /* 浅一点的青蓝 */
+  --chart-palette-3: #00b8a9;            /* 明亮青绿（邻近色） */
+  --chart-palette-4: #f2c94c;            /* 柔和金黄（对比色） */
+  --chart-palette-5: #eb5757;            /* 温暖红橙（强调） */
+  --chart-palette-6: #2f80ed;            /* 明亮蓝色（辅助） */
+  --chart-palette-7: #9b51e0;            /* 紫色（分类区分） */
+  --chart-palette-8: #56ccf2;            /* 天蓝色（柔和点缀） */
+  --chart-palette-9: #6fcf97;            /* 淡绿色（平衡） */
+  --chart-palette-10: #333333;           /* 深灰（中性补充） */
+
+  /* Stats Card Colors - 统计卡片颜色系统 */
+  --stats-primary-bg: #eff6ff;           /* 主色调背景 */
+  --stats-primary-color: #2563eb;        /* 主色调文字 */
+  --stats-success-bg: #f0fdf4;          /* 成功色背景 */
+  --stats-success-color: #16a34a;       /* 成功色文字 */
+  --stats-info-bg: #f0f9ff;              /* 信息色背景 */
+  --stats-info-color: #0284c7;           /* 信息色文字 */
+  --stats-warning-bg: #fffbeb;           /* 警告色背景 */
+  --stats-warning-color: #d97706;        /* 警告色文字 */
+  --stats-secondary-bg: #faf5ff;        /* 次要色背景 */
+  --stats-secondary-color: #9333ea;     /* 次要色文字 */
+  --stats-error-bg: #fef2f2;            /* 错误色背景 */
+  --stats-error-color: #dc2626;          /* 错误色文字 */
+
+  --bg-sider: var(--main-5);
+  --color-text: var(--c-black);
+
+  --min-width: 400px;
+}

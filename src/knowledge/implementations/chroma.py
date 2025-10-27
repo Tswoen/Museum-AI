@@ -1,7 +1,7 @@
 import asyncio
 import os
 import traceback
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List
 
 import chromadb
 from chromadb.config import Settings
@@ -157,6 +157,7 @@ class ChromaKB(KnowledgeBase):
             image_url = artifact ["image_url"]
             image_embedding = get_image_embedding(image_url)
             chunk = {
+                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}",
                 "embeddings": image_embedding,
                 "id": f"{file_id}_chunk_{chunk_index}",
                 "file_id": file_id,
@@ -355,6 +356,7 @@ class ChromaKB(KnowledgeBase):
 
                 # 准备向量数据库插入的数据
                 if chunks:
+                    documents = [chunk["content"] for chunk in chunks]
                     embeddings = [chunk["embeddings"] for chunk in chunks]
                     metadatas = [chunk["metadata"] for chunk in chunks]
                     ids = [chunk["id"] for chunk in chunks]
@@ -364,12 +366,14 @@ class ChromaKB(KnowledgeBase):
                     total_batches = (len(chunks) + batch_size - 1) // batch_size
 
                     for i in range(0, len(chunks), batch_size):
+                        batch_documents = documents[i : i + batch_size]
                         batch_embeddings = embeddings[i : i + batch_size]
                         batch_metadatas = metadatas[i : i + batch_size]
                         batch_ids = ids[i : i + batch_size]
 
                         await asyncio.to_thread(
                             collection.add,
+                            documents=batch_documents,
                             embeddings=batch_embeddings,
                             metadatas=batch_metadatas,
                             ids=batch_ids,
@@ -398,7 +402,7 @@ class ChromaKB(KnowledgeBase):
         return processed_items_info
                     
     
-    async def aquery(self, db_id: str ,query_text: str = None ,img_path: str = None, **kwargs) -> list[dict]:
+    async def aquery(self, db_id: str ,query_text: str = "" ,img_path: str = "", **kwargs) -> list[dict]:
         """异步查询知识库"""
         collection = await self._get_chroma_collection(db_id)
         if not collection:
@@ -407,26 +411,35 @@ class ChromaKB(KnowledgeBase):
         try:
             top_k = kwargs.get("top_k", 10)
             similarity_threshold = kwargs.get("similarity_threshold", 0.0)
-
-            results = None
-            # 修复NumPy数组布尔判断问题
-            if query_embeddings is not None:
-                results = collection.query(
+            
+            img_query_results = None
+            text_query_results = None
+            if img_path == "" and query_text == "":
+                raise ValueError("Either query_text or query_embeddings must be provided")
+            if img_path != "":
+                query_embeddings = get_image_embedding(img_path)
+                img_query_results = collection.query(
                     query_embeddings=query_embeddings, n_results=top_k, include=["documents", "metadatas", "distances"]
                 )
-            elif query_text:
-                results = collection.query(
+            if query_text != "":
+                text_query_results = collection.query(
                     query_texts=[query_text], n_results=top_k, include=["documents", "metadatas", "distances"]
                 )
-            else:
-                raise ValueError("Either query_text or query_embeddings must be provided")
+            
 
-            if not results or not results.get("documents") or not results["documents"][0]:
+            if not img_query_results or not img_query_results.get("documents") or not img_query_results["documents"][0]:
                 return []
-
-            documents = results["documents"][0]
-            metadatas = results["metadatas"][0] if results.get("metadatas") else []
-            distances = results["distances"][0] if results.get("distances") else []
+            documents = List()  
+            metadatas = List()
+            distances = List()
+            if text_query_results:
+                documents.extend(text_query_results["documents"][0])
+                metadatas.extend(text_query_results["metadatas"][0] if text_query_results.get("metadatas") else [])
+                distances.extend(text_query_results["distances"][0] if text_query_results.get("distances") else [])
+            if img_query_results:
+                documents.extend(img_query_results["documents"][0])
+                metadatas.extend(img_query_results["metadatas"][0] if img_query_results.get("metadatas") else [])
+                distances.extend(img_query_results["distances"][0] if img_query_results.get("distances") else [])
 
             retrieved_chunks = []
             for i, doc in enumerate(documents):
@@ -439,8 +452,14 @@ class ChromaKB(KnowledgeBase):
                 # 确保 file_id 在元数据中，并使用统一的键名
                 if "full_doc_id" in metadata:
                     metadata["file_id"] = metadata.pop("full_doc_id")
-
-                retrieved_chunks.append({"content": doc, "metadata": metadata, "score": similarity})
+                # chunk去重
+                has_same_chunk_id = False
+                for metadataTmp in metadatas:
+                    if metadataTmp.get("chunk_id") == metadata.get("chunk_id"):
+                        has_same_chunk_id = True
+                        break
+                if not has_same_chunk_id:
+                    retrieved_chunks.append({"content": doc, "metadata": metadata, "score": similarity})
 
             logger.debug(f"ChromaDB query response: {len(retrieved_chunks)} chunks found (after similarity filtering)")
             return retrieved_chunks

@@ -11,7 +11,7 @@ from server.utils.auth_middleware import get_admin_user, get_current_user, get_d
 from server.utils.auth_utils import AuthUtils
 from server.utils.user_utils import generate_unique_user_id, validate_username, is_valid_phone_number
 from server.utils.common_utils import log_operation
-from src.storage.minio import upload_image_to_minio
+# from src.storage.minio import upload_image_to_minio
 from src.utils.datetime_utils import utc_now
 
 # 创建路由器
@@ -581,38 +581,38 @@ async def check_user_id_availability(
 
 
 # 路由：上传用户头像
-@auth.post("/upload-avatar")
-async def upload_user_avatar(
-    file: UploadFile = File(...), current_user: User = Depends(get_required_user), db: Session = Depends(get_db)
-):
-    """上传用户头像"""
-    # 检查文件类型
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="只能上传图片文件")
+# @auth.post("/upload-avatar")
+# async def upload_user_avatar(
+#     file: UploadFile = File(...), current_user: User = Depends(get_required_user), db: Session = Depends(get_db)
+# ):
+#     """上传用户头像"""
+#     # 检查文件类型
+#     if not file.content_type or not file.content_type.startswith("image/"):
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="只能上传图片文件")
 
-    # 检查文件大小（5MB限制）
-    file_size = 0
-    file_content = await file.read()
-    file_size = len(file_content)
+#     # 检查文件大小（5MB限制）
+#     file_size = 0
+#     file_content = await file.read()
+#     file_size = len(file_content)
 
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件大小不能超过5MB")
+#     if file_size > 5 * 1024 * 1024:  # 5MB
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="文件大小不能超过5MB")
 
-    try:
-        # 获取文件扩展名
-        file_extension = file.filename.split(".")[-1].lower() if file.filename and "." in file.filename else "jpg"
+#     try:
+#         # 获取文件扩展名
+#         file_extension = file.filename.split(".")[-1].lower() if file.filename and "." in file.filename else "jpg"
 
-        # 上传到MinIO
-        avatar_url = upload_image_to_minio("avatar", file_content, file_extension)
+#         # 上传到MinIO
+#         avatar_url = upload_image_to_minio("avatar", file_content, file_extension)
 
-        # 更新用户头像
-        current_user.avatar = avatar_url
-        db.commit()
+#         # 更新用户头像
+#         current_user.avatar = avatar_url
+#         db.commit()
 
-        # 记录操作
-        log_operation(db, current_user.id, "上传头像", f"更新头像: {avatar_url}")
+#         # 记录操作
+#         log_operation(db, current_user.id, "上传头像", f"更新头像: {avatar_url}")
 
-        return {"success": True, "avatar_url": avatar_url, "message": "头像上传成功"}
+#         return {"success": True, "avatar_url": avatar_url, "message": "头像上传成功"}
 
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"头像上传失败: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"头像上传失败: {str(e)}")

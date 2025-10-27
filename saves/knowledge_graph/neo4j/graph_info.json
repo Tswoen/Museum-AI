@@ -1,0 +1,11 @@
+{
+  "graph_name": "neo4j",
+  "entity_count": 0,
+  "relationship_count": 0,
+  "triples_count": 0,
+  "labels": [],
+  "status": "open",
+  "embed_model_name": "siliconflow/BAAI/bge-m3",
+  "unindexed_node_count": 0,
+  "last_updated": "2025-10-27T09:43:05.770324Z"
+}

@@ -17,6 +17,14 @@ neo4j = "^6.0.2"
 cn-clip = "^1.6.0"
 fastapi = "^0.120.0"
 langgraph = "^1.0.1"
+sqlalchemy = "^2.0.44"
+python-jose = "^3.5.0"
+pyjwt = "^2.10.1"
+pypinyin = "^0.55.0"
+python-multipart = "^0.0.20"
+langgraph-checkpoint-sqlite = "^3.0.0"
+langchain-mcp-adapters = "^0.1.11"
+langchain-tavily = "^0.2.12"
 
 
 [build-system]
