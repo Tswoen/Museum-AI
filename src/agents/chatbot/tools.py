@@ -4,9 +4,9 @@ from typing import Any
 import requests
 from langchain_core.tools import tool
 
-from src.agents.common.toolkits.mysql import get_mysql_tools
+# from src.agents.common.toolkits.mysql import get_mysql_tools
 from src.agents.common.tools import get_buildin_tools
-from src.storage.minio import upload_image_to_minio
+# from src.storage.minio import upload_image_to_minio
 from src.utils import logger
 
 
@@ -69,6 +69,6 @@ def get_tools() -> list[Any]:
     """获取所有可运行的工具（给大模型使用）"""
     tools = get_buildin_tools()
     tools.append(calculator)
-    tools.append(text_to_img_qwen)
-    tools.extend(get_mysql_tools())
+    # tools.append(text_to_img_qwen)
+    # tools.extend(get_mysql_tools())
     return tools
