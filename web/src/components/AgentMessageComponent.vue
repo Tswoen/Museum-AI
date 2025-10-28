@@ -1,7 +1,26 @@
 <template>
   <div class="message-box" :class="[message.type, customClasses]">
     <!-- 用户消息 -->
-    <p v-if="message.type === 'human'" class="message-text">{{ message.content }}</p>
+  <div v-if="message.type === 'human'" class="human-message">
+    <!-- 显示图片 -->
+    <div v-if="parsedData.images && parsedData.images.length > 0" class="message-images">
+      <div 
+        v-for="(image, index) in parsedData.images" 
+        :key="index" 
+        class="message-image-container"
+      >
+        <img 
+          :src="getImageUrl(image)" 
+          :alt="'图片' + (index + 1)"
+          class="message-image"
+          @load="onImageLoad"
+          @error="onImageError"
+        />
+      </div>
+    </div>
+    <!-- 显示文本内容 -->
+    <p class="message-text">{{ parsedData.content }}</p>
+  </div>
 
     <!-- 助手消息 -->
     <div v-else-if="message.type === 'ai'" class="assistant-message">
@@ -152,8 +171,65 @@ const getToolNameByToolCall = (toolCall) => {
   return tool ? tool.name : toolId;
 };
 
+// 获取图片URL
+const getImageUrl = (imagePath) => {
+  // 如果是完整URL，直接返回
+  if (imagePath.startsWith('http')) {
+    return imagePath
+  }
+  // 如果是相对路径，拼接服务器地址
+  return `${import.meta.env.VITE_API_BASE_URL || ''}${imagePath}`
+}
+
+// 图片加载成功
+const onImageLoad = (event) => {
+  console.log('图片加载成功')
+}
+
+// 图片加载失败
+const onImageError = (event) => {
+  console.error('图片加载失败', event)
+}
+
+// 从文本内容中提取图片URL
+const extractImagesFromContent = (content) => {
+  const images = [];
+  let cleanedContent = content;
+  
+  // 匹配 [图片附件]: 格式
+  const imagePattern = /\[图片附件\]:\s*\n(-\s*([^\n]+)\n?)+/g;
+  const match = content.match(imagePattern);
+  
+  if (match) {
+    // 提取所有图片路径
+    const pathPattern = /-\s*([^\n]+)/g;
+    let pathMatch;
+    while ((pathMatch = pathPattern.exec(match[0])) !== null) {
+      const imagePath = pathMatch[1].trim();
+      if (imagePath) {
+        images.push(imagePath);
+      }
+    }
+    
+    // 从内容中移除图片附件部分
+    cleanedContent = content.replace(imagePattern, '').trim();
+  }
+  
+  return {
+    images,
+    cleanedContent
+  };
+};
+
 const parsedData = computed(() => {
   // Start with default values from the prop to avoid mutation.
+  if (props.message.type === 'human') {
+    const { images, cleanedContent } = extractImagesFromContent(props.message.content);
+    return {
+      content: cleanedContent,
+      images,
+    }
+  }
   let content = props.message.content.trim() || '';
   let reasoning_content = props.message.additional_kwargs?.reasoning_content || '';
 
@@ -206,6 +282,43 @@ const toggleToolCall = (toolCallId) => {
   max-width: 100%;
   position: relative;
   letter-spacing: .25px;
+
+  .human-message {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .message-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .message-image-container {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .message-image {
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+  }
+
+  .message-image:hover {
+    transform: scale(1.05);
+  }
+
+  .message-text {
+    margin: 0;
+    line-height: 1.5;
+  }
 
   &.human, &.sent {
     max-width: 95%;

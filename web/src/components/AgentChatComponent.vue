@@ -58,7 +58,7 @@
         <p>{{ currentAgent ? currentAgent.description : '不同的智能体有不同的专长和能力' }}</p> -->
 
         <div class="inputer-init">
-          <MessageInputComponent
+          <!-- <MessageInputComponent
             v-model="userInput"
             :is-loading="isProcessing"
             :disabled="!currentAgent"
@@ -66,7 +66,17 @@
             placeholder="输入问题..."
             @send="handleSendOrStop"
             @keydown="handleKeyDown"
-          />
+          /> -->
+          <MultiMessageInputComponentDeepseek
+              ref="messageInputRef"
+              v-model="userInput"
+              :is-loading="isProcessing"
+              :disabled="!currentAgent"
+              :send-button-disabled="(!userInput || !currentAgent) && !isProcessing"
+              placeholder="输入问题..."
+              @send="handleSendOrStop"
+              @keydown="handleKeyDown"
+            />
 
           <!-- 示例问题 -->
           <div class="example-questions" v-if="exampleQuestions.length > 0">
@@ -118,7 +128,7 @@
       </div>
       <div class="bottom">
         <div class="message-input-wrapper" v-if="conversations.length > 0">
-          <MessageInputComponent
+          <!-- <MessageInputComponent
             v-model="userInput"
             :is-loading="isProcessing"
             :disabled="!currentAgent"
@@ -126,7 +136,17 @@
             placeholder="输入问题..."
             @send="handleSendOrStop"
             @keydown="handleKeyDown"
-          />
+          /> -->
+          <MultiMessageInputComponentDeepseek
+              ref="messageInputRef"
+              v-model="userInput"
+              :is-loading="isProcessing"
+              :disabled="!currentAgent"
+              :send-button-disabled="(!userInput || !currentAgent) && !isProcessing"
+              placeholder="输入问题..."
+              @send="handleSendOrStop"
+              @keydown="handleKeyDown"
+            />
           <div class="bottom-actions">
             <p class="note">请注意辨别内容的可靠性</p>
           </div>
@@ -141,6 +161,7 @@ import { ref, reactive, onMounted, watch, nextTick, computed, onUnmounted } from
 import { LoadingOutlined } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import MessageInputComponent from '@/components/MessageInputComponent.vue'
+import MultiMessageInputComponentDeepseek from '@/components/MultiMessageInputComponentDeepseek.vue'
 import AgentMessageComponent from '@/components/AgentMessageComponent.vue'
 import ChatSidebarComponent from '@/components/ChatSidebarComponent.vue'
 import RefsComponent from '@/components/RefsComponent.vue'
@@ -499,9 +520,9 @@ const fetchThreadMessages = async ({ agentId, threadId }) => {
 };
 
 // 发送消息并处理流式响应
-const sendMessage = async ({ agentId, threadId, text, signal = undefined }) => {
-  if (!agentId || !threadId || !text) {
-    const error = new Error("Missing agent, thread, or message text");
+const sendMessage = async ({ agentId, threadId, text, images, signal = undefined }) => {
+  if (!agentId || !threadId || (!text && (!images || images.length === 0))) {
+    const error = new Error("Missing agent, thread, or message content (text or images)");
     handleChatError(error, 'send');
     return Promise.reject(error);
   }
@@ -513,6 +534,7 @@ const sendMessage = async ({ agentId, threadId, text, signal = undefined }) => {
 
   const requestData = {
     query: text,
+    images: images,
     config: {
       thread_id: threadId,
     },
@@ -613,9 +635,10 @@ const renameChat = async (data) => {
   }
 };
 
-const handleSendMessage = async () => {
-  const text = userInput.value.trim();
-  if (!text || !currentAgent.value || isProcessing.value) return;
+const  handleSendMessage = async (sendData) => {
+  const { text, images } = sendData;
+  console.log('handleSendMessage', text, images);
+  if ((!text || !text.trim()) && (!images || images.length === 0) || !currentAgent.value || isProcessing.value) return;
 
   // 如果没有当前线程，先创建一个新线程
   if (!currentChatId.value) {
@@ -650,6 +673,7 @@ const handleSendMessage = async () => {
       agentId: currentAgentId.value,
       threadId: currentChatId.value,
       text: text,
+      images: images,
       signal: threadState.streamAbortController?.signal
     });
 
@@ -695,11 +719,18 @@ const handleSendMessage = async () => {
     threadState.isStreaming = false;
     threadState.streamAbortController = null;
     resetOnGoingConv(threadId);
+    
+    // 发送成功后清理图片预览
+    if (messageInputRef.value && messageInputRef.value.clearImages) {
+      messageInputRef.value.clearImages();
+    }
   }
 };
 
 // 发送或中断
-const handleSendOrStop = async () => {
+const messageInputRef = ref(null);
+
+const handleSendOrStop = async (sendData) => {
   const threadId = currentChatId.value;
   const threadState = getThreadState(threadId);
   if (isProcessing.value && threadState && threadState.streamAbortController) {
@@ -716,14 +747,23 @@ const handleSendOrStop = async () => {
     }
     return;
   }
-  await handleSendMessage();
+  await handleSendMessage(sendData);
 };
 
 // ==================== UI HANDLERS ====================
-const handleKeyDown = (e) => {
+const handleKeyDown = (e, sendData) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    handleSendMessage();
+
+    // 如果通过键盘发送，确保sendData包含当前输入框的内容
+    if (!sendData) {
+      sendData = {
+        text: userInput.value,
+        images: []
+      };
+    }
+    
+    handleSendMessage(sendData);
   }
 };
 
@@ -731,7 +771,10 @@ const handleKeyDown = (e) => {
 const handleExampleClick = (questionText) => {
   userInput.value = questionText;
   nextTick(() => {
-    handleSendMessage();
+    handleSendMessage({
+      text: userInput.value,
+      images: []
+    });
   });
 };
 

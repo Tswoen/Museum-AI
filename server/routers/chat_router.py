@@ -3,6 +3,8 @@ import json
 import traceback
 import uuid
 import yaml
+import os
+import base64
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -16,6 +18,7 @@ from src.storage.conversation import ConversationManager
 from src.storage.db.manager import db_manager
 from server.routers.auth_router import get_admin_user
 from server.utils.auth_middleware import get_db, get_required_user
+from server.utils.common_utils import save_chat_images
 from src import executor
 from src import config as conf
 from src.agents import agent_manager
@@ -25,6 +28,7 @@ from src.plugins.guard import content_guard
 from src.utils.logging_config import logger
 
 chat = APIRouter(prefix="/chat", tags=["chat"])
+
 
 # =============================================================================
 # > === 智能体管理分组 ===
@@ -118,6 +122,7 @@ async def get_agent(current_user: User = Depends(get_required_user)):
 async def chat_agent(
     agent_id: str,
     query: str = Body(...),
+    images: list = Body([]),
     config: dict = Body({}),
     meta: dict = Body({}),
     current_user: User = Depends(get_required_user),
@@ -126,14 +131,24 @@ async def chat_agent(
     """使用特定智能体进行对话（需要登录）"""
     start_time = asyncio.get_event_loop().time()
 
-    logger.info(f"agent_id: {agent_id}, query: {query}, config: {config}, meta: {meta}")
+    logger.info(f"agent_id: {agent_id}, query: {query}, images_count: {len(images)}, config: {config}, meta: {meta}")
+
+    # 保存图片到服务器并获取保存路径
+    saved_image_paths = []
+    thread_id = config.get("thread_id")
+    if images and thread_id:
+        saved_image_paths = save_chat_images(images, thread_id)
+        logger.info(f"成功保存 {len(saved_image_paths)} 张图片到服务器")
+    else:
+        saved_image_paths = images  # 如果没有thread_id，保留原始图片数据
 
     meta.update(
         {
             "query": query,
+            "images": saved_image_paths,
             "agent_id": agent_id,
             "server_model_name": config.get("model", agent_id),
-            "thread_id": config.get("thread_id"),
+            "thread_id": thread_id,
             "user_id": current_user.id,
         }
     )
@@ -273,7 +288,14 @@ async def chat_agent(
             yield make_chunk(message=f"Error getting agent {agent_id}: {e}", status="error")
             return
 
+        # 构造包含图片的消息
         messages = [{"role": "user", "content": query}]
+        
+        # 如果有图片，将图片信息添加到消息中
+        if saved_image_paths:
+            # 将保存后的图片路径添加到消息内容中
+            image_content = "\n\n[图片附件]:\n" + "\n".join([f"- {img}" for img in saved_image_paths])
+            messages[0]["content"] = query + image_content
 
         # 构造运行时配置，如果没有thread_id则生成一个
         user_id = str(current_user.id)
