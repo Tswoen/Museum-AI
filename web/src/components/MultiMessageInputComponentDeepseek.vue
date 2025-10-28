@@ -29,6 +29,10 @@
     <div class="image-previews" v-if="imagePreviews.length > 0">
       <div class="preview-item" v-for="(image, index) in imagePreviews" :key="index">
         <img :src="image.url" :alt="image.name" class="preview-image" />
+        <div class="preview-overlay" v-if="image.isUploading">
+          <a-spin size="small" />
+          <span class="upload-text">上传中...</span>
+        </div>
         <div class="preview-actions">
           <a-button type="text" size="small" @click="removeImage(index)" class="remove-btn">
             <CloseOutlined />
@@ -193,14 +197,40 @@ const triggerImageUpload = () => {
   }
 };
 
+// 上传图片到后端
+const uploadImageToServer = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/chat/upload-image', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || '图片上传失败');
+    }
+
+    const data = await response.json();
+    return data.image_url; // 返回后端存储的图片完整地址
+  } catch (error) {
+    console.error('图片上传错误:', error);
+    throw error;
+  }
+};
+
 // 处理图片上传
-const handleImageUpload = (event) => {
+const handleImageUpload = async (event) => {
   const files = event.target.files;
   if (!files || files.length === 0) return;
 
   // 检查图片数量限制
   if (imagePreviews.value.length + files.length > props.maxImages) {
-    // 这里可以添加提示信息
     console.warn(`最多只能上传 ${props.maxImages} 张图片`);
     return;
   }
@@ -220,22 +250,49 @@ const handleImageUpload = (event) => {
       continue;
     }
 
-    // 创建预览
+    // 先创建本地预览
     const reader = new FileReader();
     reader.onload = (e) => {
-      const imageData = {
+      const tempImageData = {
         file: file,
-        url: e.target.result,
+        url: e.target.result, // 临时预览URL
         name: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
+        isUploading: true,
+        serverUrl: null // 后端URL，上传成功后更新
       };
       
-      imagePreviews.value.push(imageData);
+      imagePreviews.value.push(tempImageData);
       
       // 触发图片变化事件
       emit('images-change', imagePreviews.value);
-      emit('image-upload', imageData);
+      emit('image-upload', tempImageData);
+
+      // 上传到后端
+      uploadImageToServer(file).then(serverUrl => {
+        // 更新图片数据，将临时预览URL替换为后端URL
+        const index = imagePreviews.value.findIndex(img => img.file === file);
+        if (index !== -1) {
+          imagePreviews.value[index] = {
+            ...imagePreviews.value[index],
+            url: serverUrl, // 使用后端返回的完整地址
+            serverUrl: serverUrl,
+            isUploading: false
+          };
+          
+          // 触发更新事件
+          emit('images-change', imagePreviews.value);
+        }
+      }).catch(error => {
+        console.error('图片上传失败:', error);
+        // 上传失败时移除预览
+        const index = imagePreviews.value.findIndex(img => img.file === file);
+        if (index !== -1) {
+          imagePreviews.value.splice(index, 1);
+          emit('images-change', imagePreviews.value);
+        }
+      });
     };
     reader.readAsDataURL(file);
   }
@@ -451,6 +508,25 @@ defineExpose({
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .preview-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      
+      .upload-text {
+        margin-top: 4px;
+      }
     }
 
     .preview-actions {

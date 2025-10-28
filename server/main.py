@@ -1,11 +1,13 @@
 import asyncio
 import time
 from collections import defaultdict, deque
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from server.routers import router
@@ -118,6 +120,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
 # 添加鉴权中间件
 app.add_middleware(LoginRateLimitMiddleware)
 app.add_middleware(AuthMiddleware)
+
+# 添加静态文件服务
+# 创建静态文件目录
+static_dir = Path("saves/chat_images")
+static_dir.mkdir(parents=True, exist_ok=True)
+
+# 挂载静态文件服务
+app.mount("/static/chat_images", StaticFiles(directory=static_dir), name="chat_images")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5050)

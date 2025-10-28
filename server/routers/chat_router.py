@@ -134,18 +134,17 @@ async def chat_agent(
     logger.info(f"agent_id: {agent_id}, query: {query}, images_count: {len(images)}, config: {config}, meta: {meta}")
 
     # 保存图片到服务器并获取保存路径
-    saved_image_paths = []
-    thread_id = config.get("thread_id")
-    if images and thread_id:
-        saved_image_paths = save_chat_images(images, thread_id)
-        logger.info(f"成功保存 {len(saved_image_paths)} 张图片到服务器")
-    else:
-        saved_image_paths = images  # 如果没有thread_id，保留原始图片数据
+    image_paths = []
+    for image in images:
+        image_path = image["url"]
+        image_paths.append(image_path)
+
+    logger.debug(f"image_paths: {image_paths}")
 
     meta.update(
         {
             "query": query,
-            "images": saved_image_paths,
+            "images": image_paths,
             "agent_id": agent_id,
             "server_model_name": config.get("model", agent_id),
             "thread_id": thread_id,
@@ -274,6 +273,10 @@ async def chat_agent(
     # 可以使用langgraph的interrupt方法中断对话，等待用户输入后再使用command跳转回去
     async def stream_messages():
         # 代表服务端已经收到了请求
+        if image_paths:
+            # 将保存后的图片路径添加到消息内容中
+            image_content = "[图片附件]:\n" + "\n".join([f"- {img}" for img in image_paths])
+            query = image_content + "\n" + query
         yield make_chunk(status="init", meta=meta, msg=HumanMessage(content=query).model_dump())
 
         # Input guard
@@ -290,12 +293,6 @@ async def chat_agent(
 
         # 构造包含图片的消息
         messages = [{"role": "user", "content": query}]
-        
-        # 如果有图片，将图片信息添加到消息中
-        if saved_image_paths:
-            # 将保存后的图片路径添加到消息内容中
-            image_content = "\n\n[图片附件]:\n" + "\n".join([f"- {img}" for img in saved_image_paths])
-            messages[0]["content"] = query + image_content
 
         # 构造运行时配置，如果没有thread_id则生成一个
         user_id = str(current_user.id)
@@ -774,3 +771,59 @@ async def get_message_feedback(
     except Exception as e:
         logger.error(f"Error getting message feedback: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get feedback: {str(e)}")
+
+
+# =============================================================================
+# > === 图片上传分组 ===
+# =============================================================================
+
+
+@chat.post("/upload-image")
+async def upload_chat_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_required_user),
+):
+    """上传聊天图片到服务器"""
+    try:
+        # 检查文件类型
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="只能上传图片文件")
+
+        # 检查文件大小（10MB限制）
+        file_content = await file.read()
+        file_size = len(file_content)
+
+        if file_size > 10 * 1024 * 1024:  # 10MB
+            raise HTTPException(status_code=400, detail="文件大小不能超过10MB")
+
+        # 创建图片保存目录
+        images_dir = Path("saves/chat_images")
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        # 生成唯一的文件名
+        file_extension = file.filename.split(".")[-1].lower() if file.filename and "." in file.filename else "jpg"
+        filename = f"{uuid.uuid4().hex}.{file_extension}"
+        file_path = images_dir / filename
+
+        # 保存图片文件
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+
+        # 构建完整的图片访问URL
+        # 这里假设服务器运行在 localhost:5050，实际部署时需要根据环境配置
+        image_url = f"{str(images_dir)}/{filename}"
+
+        logger.info(f"用户 {current_user.id} 上传图片: {filename}, 大小: {file_size} bytes")
+
+        return {
+            "success": True,
+            "image_url": image_url,
+            "filename": filename,
+            "message": "图片上传成功"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"图片上传失败: {e}")
+        raise HTTPException(status_code=500, detail=f"图片上传失败: {str(e)}")
