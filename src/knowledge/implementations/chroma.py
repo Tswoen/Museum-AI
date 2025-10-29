@@ -2,6 +2,7 @@ import asyncio
 import os
 import traceback
 from typing import Any, Optional, Union, List
+from pathlib import Path
 
 import chromadb
 from chromadb.config import Settings
@@ -255,15 +256,23 @@ class ChromaKB(KnowledgeBase):
             self._save_metadata()
 
             self._add_to_processing_queue(file_id)
+
+            file_path_obj = Path(item)
+            file_ext = file_path_obj.suffix.lower()
+
             try:
-                # 根据内容类型处理内容
-                if content_type == "json":
+                # 根据文件扩展名处理内容
+                if file_ext == ".json":
                     json_content = await process_file_to_json(item, params=params)
-                else:  # URL
-                    markdown_content = await process_url_to_markdown(item, params=params)
+                else :
+                    # 根据内容类型处理内容
+                    if content_type == "file":
+                        markdown_content = await process_file_to_markdown(item, params=params)
+                    else:  # URL    
+                        markdown_content = await process_url_to_markdown(item, params=params)
                 
                 chunks = []
-                if content_type == "json":
+                if file_ext == ".json":
                     chunks = self.split_json_into_chunks(json_content, file_id, filename, params)
                 else:
                     # 分割文本成块
@@ -335,19 +344,27 @@ class ChromaKB(KnowledgeBase):
             # 添加文件记录
             file_record = metadata.copy()
             self.files_meta[file_id] = file_record
-            self._save_metadata()
+            # self._save_metadata()
 
             self._add_to_processing_queue(file_id)
+
+            file_path_obj = Path(item)
+            file_ext = file_path_obj.suffix.lower()
+
             try:
-                # 根据内容类型处理内容
-                if content_type == "file":
-                    markdown_content = await process_file_to_markdown(item, params=params)
-                elif content_type == "json":
+                markdown_content = ""
+                json_content = ""
+                # 根据文件扩展名处理内容
+                if file_ext == ".json":
                     json_content = await process_file_to_json(item, params=params)
-                else:  # URL
-                    markdown_content = await process_url_to_markdown(item, params=params)
+                else :
+                    # 根据内容类型处理内容
+                    if content_type == "file":
+                        markdown_content = await process_file_to_markdown(item, params=params)
+                    else:  # URL    
+                        markdown_content = await process_url_to_markdown(item, params=params)
                 chunks = []
-                if content_type == "json":
+                if file_ext == "json":
                     chunks = self.parse_json_into_embedding_chunks(json_content, file_id, filename, params)
                 else:
                     # 分割文本成块
@@ -427,19 +444,23 @@ class ChromaKB(KnowledgeBase):
                 )
             
 
-            if not img_query_results or not img_query_results.get("documents") or not img_query_results["documents"][0]:
-                return []
-            documents = List()  
-            metadatas = List()
-            distances = List()
-            if text_query_results:
+            # if not img_query_results or not img_query_results.get("documents") or not img_query_results["documents"][0]:
+            #     return []
+            documents = []
+            metadatas = []
+            distances = []
+            # 处理文本查询结果
+            # 先判断 text_query_results 非空，且 documents 存在且是 non-empty 列表
+            if text_query_results and text_query_results.get("documents") and len(text_query_results["documents"]) > 0 and text_query_results["documents"][0]:
                 documents.extend(text_query_results["documents"][0])
-                metadatas.extend(text_query_results["metadatas"][0] if text_query_results.get("metadatas") else [])
-                distances.extend(text_query_results["distances"][0] if text_query_results.get("distances") else [])
-            if img_query_results:
+                metadatas.extend(text_query_results["metadatas"][0] if (text_query_results.get("metadatas") and len(text_query_results["metadatas"]) > 0) else [])
+                distances.extend(text_query_results["distances"][0] if (text_query_results.get("distances") and len(text_query_results["distances"]) > 0) else [])
+
+            # 处理图片查询结果（同理）
+            if img_query_results and img_query_results.get("documents") and len(img_query_results["documents"]) > 0 and img_query_results["documents"][0]:
                 documents.extend(img_query_results["documents"][0])
-                metadatas.extend(img_query_results["metadatas"][0] if img_query_results.get("metadatas") else [])
-                distances.extend(img_query_results["distances"][0] if img_query_results.get("distances") else [])
+                metadatas.extend(img_query_results["metadatas"][0] if (img_query_results.get("metadatas") and len(img_query_results["metadatas"]) > 0) else [])
+                distances.extend(img_query_results["distances"][0] if (img_query_results.get("distances") and len(img_query_results["distances"]) > 0) else [])
 
             retrieved_chunks = []
             for i, doc in enumerate(documents):
@@ -454,8 +475,8 @@ class ChromaKB(KnowledgeBase):
                     metadata["file_id"] = metadata.pop("full_doc_id")
                 # chunk去重
                 has_same_chunk_id = False
-                for metadataTmp in metadatas:
-                    if metadataTmp.get("chunk_id") == metadata.get("chunk_id"):
+                for chunk in retrieved_chunks:
+                    if chunk.get("metadata").get("chunk_id") == metadata.get("chunk_id"):
                         has_same_chunk_id = True
                         break
                 if not has_same_chunk_id:

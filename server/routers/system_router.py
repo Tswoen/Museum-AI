@@ -277,3 +277,50 @@ async def get_all_chat_models_status(current_user: User = Depends(get_admin_user
     except Exception as e:
         logger.error(f"获取所有聊天模型状态失败: {e}")
         return {"message": f"获取所有聊天模型状态失败: {e}", "status": {"models": {}, "total": 0, "available": 0}}
+
+
+# =============================================================================
+# === 图片服务分组 ===
+# =============================================================================
+
+
+@system.get("/images/{filename}")
+async def get_image(filename: str):
+    """
+    获取聊天图片（公开接口，无需认证）
+    前端可以通过 http://localhost:8000/api/system/images/{filename} 访问图片
+    例如：<img src="http://localhost:8000/api/system/images/773b2205d3f241e9a8e38765d77371ab.jpg" />
+    """
+    try:
+        # 图片存储目录
+        image_dir = Path("saves/chat_images")
+        
+        # 构建完整的图片路径
+        image_path = image_dir / filename
+        
+        # 安全检查：确保文件在指定目录内
+        if not image_path.resolve().is_relative_to(image_dir.resolve()):
+            raise HTTPException(status_code=403, detail="访问路径非法")
+        
+        # 检查文件是否存在
+        if not image_path.exists():
+            raise HTTPException(status_code=404, detail="图片不存在")
+        
+        # 检查文件是否为图片文件
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+        if image_path.suffix.lower() not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="不支持的文件类型")
+        
+        # 读取图片文件并返回
+        from fastapi.responses import FileResponse
+        return FileResponse(
+            path=image_path,
+            media_type=f"image/{image_path.suffix[1:].lower()}",
+            filename=filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取图片失败 {filename}: {e}")
+        raise HTTPException(status_code=500, detail=f"获取图片失败: {str(e)}")

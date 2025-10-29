@@ -8,18 +8,20 @@
       "llm_info": null,
       "metadata": {},
       "created_at": "2025-10-23T07:24:52.179797Z"
-    },
-    "kb_83599c39a76af2e4b5bf8b66993a2ff2": {
-      "name": "湖北省博物馆文物知识库",
-      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
-      "kb_type": "chroma",
-      "embed_info": null,
-      "llm_info": null,
-      "metadata": {},
-      "created_at": "2025-10-23T08:06:35.466876Z"
     }
   },
-  "files": {},
+  "files": {
+    "file_ae376f": {
+      "database_id": "kb_b3334d624989e3073d7487219ae440d8",
+      "filename": "hubei_museum_artifacts_803a.json",
+      "path": "saves\\knowledge_base_data\\chroma_data\\kb_b3334d624989e3073d7487219ae440d8\\uploads\\hubei_museum_artifacts_803a.json",
+      "file_type": "json",
+      "status": "done",
+      "created_at": "2025-10-29T08:49:38.622038Z",
+      "file_id": "file_ae376f",
+      "content_hash": "742866cee06e820fe54b1c8c04d6f9f75338d5b4ade8306ceb9c7d0bd2511ac7"
+    }
+  },
   "kb_type": "chroma",
-  "updated_at": "2025-10-25T09:38:31.519526Z"
+  "updated_at": "2025-10-29T09:52:13.466390Z"
 }

@@ -203,10 +203,17 @@ const uploadImageToServer = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
 
+    // 获取正确的token（存储在user_token中）
+    const token = localStorage.getItem('user_token');
+    console.log('token:', token);
+    if (!token) {
+      throw new Error('请先登录');
+    }
+
     const response = await fetch('/api/chat/upload-image', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       },
       body: formData
     });

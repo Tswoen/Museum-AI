@@ -14,13 +14,6 @@
       "created_at": "2025-10-23T07:37:49.877352Z",
       "additional_params": {}
     },
-    "kb_83599c39a76af2e4b5bf8b66993a2ff2": {
-      "name": "湖北省博物馆文物知识库",
-      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
-      "kb_type": "chroma",
-      "created_at": "2025-10-23T08:06:35.472878Z",
-      "additional_params": {}
-    },
     "kb_5746703de7921e6278db1059f295d34d": {
       "name": "湖北省博物馆文物知识库",
       "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息",
@@ -106,6 +99,6 @@
       "additional_params": {}
     }
   },
-  "updated_at": "2025-10-25T09:37:45.466218Z",
+  "updated_at": "2025-10-29T07:42:12.865815Z",
   "version": "2.0"
 }

@@ -214,10 +214,15 @@ class KnowledgeBaseManager:
         kb_instance = self._get_kb_for_database(db_id)
         return await kb_instance.add_content(db_id, items, params or {})
 
+    async def add_image_embeddings(self, db_id: str, items: list[str], params: dict | None = None) -> list[dict]:
+        """添加图片嵌入"""
+        kb_instance = self._get_kb_for_database(db_id)
+        return await kb_instance.add_image_embeddings(db_id, items, params or {})
+
     async def aquery(self, query_text: str, db_id: str, **kwargs) -> str:
         """异步查询知识库"""
         kb_instance = self._get_kb_for_database(db_id)
-        return await kb_instance.aquery(query_text, db_id, **kwargs)
+        return await kb_instance.aquery(db_id, query_text, **kwargs)
 
     async def export_data(self, db_id: str, format: str = "zip", **kwargs) -> str:
         """导出知识库数据"""

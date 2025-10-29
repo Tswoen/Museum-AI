@@ -2,6 +2,7 @@ import asyncio
 import os
 import traceback
 from urllib.parse import quote, unquote
+from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -179,8 +180,13 @@ async def add_documents(
                 progress = 5.0 + (idx / total) * 90.0  # 5% ~ 95%
                 await context.set_progress(progress, f"正在处理第 {idx}/{total} 个文档")
 
+                file_path_obj = Path(item)
+                file_ext = file_path_obj.suffix.lower()
                 # 处理单个文档
                 result = await knowledge_base.add_content(db_id, [item], params=params)
+                if file_ext == ".json":
+                    embedding_result = await knowledge_base.add_image_embeddings(db_id, [item], params=params)
+                    logger.debug(f"Embedding result: {embedding_result}")
                 processed_items.extend(result)
 
         except asyncio.CancelledError:

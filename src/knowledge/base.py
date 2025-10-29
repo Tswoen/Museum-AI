@@ -212,6 +212,21 @@ class KnowledgeBase(ABC):
         pass
 
     @abstractmethod
+    async def add_image_embeddings(self, db_id: str, items: list[str], params: dict | None = None) -> list[dict]:
+        """
+        添加图片嵌入
+
+        Args:
+            db_id: 数据库ID
+            items: 文件路径或URL列表
+            params: 处理参数
+
+        Returns:
+            处理结果列表
+        """
+        pass
+
+    @abstractmethod
     async def aquery(self, db_id: str, query_text: str = None, img_path: str = None, **kwargs) -> list[dict]:
         """
         异步查询知识库

@@ -7,7 +7,7 @@ import os
 import base64
 from pathlib import Path
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from langchain.messages import AIMessageChunk, HumanMessage
 from pydantic import BaseModel
@@ -18,7 +18,6 @@ from src.storage.conversation import ConversationManager
 from src.storage.db.manager import db_manager
 from server.routers.auth_router import get_admin_user
 from server.utils.auth_middleware import get_db, get_required_user
-from server.utils.common_utils import save_chat_images
 from src import executor
 from src import config as conf
 from src.agents import agent_manager
@@ -147,7 +146,7 @@ async def chat_agent(
             "images": image_paths,
             "agent_id": agent_id,
             "server_model_name": config.get("model", agent_id),
-            "thread_id": thread_id,
+            "thread_id": config.get("thread_id"),
             "user_id": current_user.id,
         }
     )
@@ -273,14 +272,15 @@ async def chat_agent(
     # 可以使用langgraph的interrupt方法中断对话，等待用户输入后再使用command跳转回去
     async def stream_messages():
         # 代表服务端已经收到了请求
+        processed_query = query  # 使用外部函数的query变量
         if image_paths:
             # 将保存后的图片路径添加到消息内容中
             image_content = "[图片附件]:\n" + "\n".join([f"- {img}" for img in image_paths])
-            query = image_content + "\n" + query
-        yield make_chunk(status="init", meta=meta, msg=HumanMessage(content=query).model_dump())
+            processed_query = image_content + "\n" + processed_query
+        yield make_chunk(status="init", meta=meta, msg=HumanMessage(content=processed_query).model_dump())
 
         # Input guard
-        if conf.enable_content_guard and await content_guard.check(query):
+        if conf.enable_content_guard and await content_guard.check(processed_query):
             yield make_chunk(status="error", message="输入内容包含敏感词", meta=meta)
             return
 
@@ -292,7 +292,7 @@ async def chat_agent(
             return
 
         # 构造包含图片的消息
-        messages = [{"role": "user", "content": query}]
+        messages = [{"role": "user", "content": processed_query}]
 
         # 构造运行时配置，如果没有thread_id则生成一个
         user_id = str(current_user.id)
@@ -311,9 +311,9 @@ async def chat_agent(
             conv_manager.add_message_by_thread_id(
                 thread_id=thread_id,
                 role="user",
-                content=query,
+                content=processed_query,
                 message_type="text",
-                extra_metadata={"raw_message": HumanMessage(content=query).model_dump()},
+                extra_metadata={"raw_message": HumanMessage(content=processed_query).model_dump()},
             )
         except Exception as e:
             logger.error(f"Error saving user message: {e}")
@@ -811,7 +811,7 @@ async def upload_chat_image(
 
         # 构建完整的图片访问URL
         # 这里假设服务器运行在 localhost:5050，实际部署时需要根据环境配置
-        image_url = f"{str(images_dir)}/{filename}"
+        image_url = f"http://localhost:5050/api/system/images/{filename}"
 
         logger.info(f"用户 {current_user.id} 上传图片: {filename}, 大小: {file_size} bytes")
 
