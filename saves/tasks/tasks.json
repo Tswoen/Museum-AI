@@ -153,7 +153,178 @@
       },
       "error": null,
       "cancel_requested": false
+    },
+    {
+      "id": "26504cd6b26547caaca9f0ee82d681fe",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "failed",
+      "progress": 100.0,
+      "message": "任务执行失败",
+      "created_at": "2025-10-30T09:08:17.319776Z",
+      "updated_at": "2025-10-30T09:08:22.819598Z",
+      "started_at": "2025-10-30T09:08:17.333210Z",
+      "completed_at": "2025-10-30T09:08:22.819598Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_5a7f.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": null,
+      "error": "Failed to get ChromaDB collection for kb_6d4cc92dae95b3b9b26dadc891b27f99",
+      "cancel_requested": false
+    },
+    {
+      "id": "248ae2ac6c9246a7888fddc191452f69",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-10-30T09:12:12.673348Z",
+      "updated_at": "2025-10-30T09:13:58.434402Z",
+      "started_at": "2025-10-30T09:12:12.703101Z",
+      "completed_at": "2025-10-30T09:13:58.420802Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_a49c.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_artifacts_a49c.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_a49c.json",
+            "file_type": "json",
+            "status": "done",
+            "created_at": "2025-10-30T09:12:12.805041Z",
+            "file_id": "file_677a1b",
+            "content_hash": "742866cee06e820fe54b1c8c04d6f9f75338d5b4ade8306ceb9c7d0bd2511ac7"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
+    },
+    {
+      "id": "690d8047c70643a0b7cd48ca63cd06a5",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-10-30T09:41:17.914695Z",
+      "updated_at": "2025-10-30T09:41:18.758145Z",
+      "started_at": "2025-10-30T09:41:17.938160Z",
+      "completed_at": "2025-10-30T09:41:18.758145Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_eef5.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_artifacts_eef5.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_eef5.json",
+            "file_type": "json",
+            "status": "done",
+            "created_at": "2025-10-30T09:41:18.029181Z",
+            "file_id": "file_dc4ae2",
+            "content_hash": "742866cee06e820fe54b1c8c04d6f9f75338d5b4ade8306ceb9c7d0bd2511ac7"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
+    },
+    {
+      "id": "1683abc0ab20450fb86b4a1eb9ba4faa",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-10-30T09:46:30.632542Z",
+      "updated_at": "2025-10-30T09:48:02.344540Z",
+      "started_at": "2025-10-30T09:46:30.654952Z",
+      "completed_at": "2025-10-30T09:48:02.344540Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_e3be.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_artifacts_e3be.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_artifacts_e3be.json",
+            "file_type": "json",
+            "status": "done",
+            "created_at": "2025-10-30T09:46:30.749243Z",
+            "file_id": "file_98b1f7",
+            "content_hash": "742866cee06e820fe54b1c8c04d6f9f75338d5b4ade8306ceb9c7d0bd2511ac7"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
     }
   ],
-  "updated_at": "2025-10-29T08:49:39.293382Z"
+  "updated_at": "2025-10-30T09:48:02.352695Z"
 }

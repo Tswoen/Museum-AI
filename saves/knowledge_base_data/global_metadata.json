@@ -97,8 +97,18 @@
       "kb_type": "chroma",
       "created_at": "2025-10-25T09:37:45.466218Z",
       "additional_params": {}
+    },
+    "kb_6d4cc92dae95b3b9b26dadc891b27f99": {
+      "name": "湖北省博物馆多模态知识库",
+      "description": "湖北省博物馆珍贵文物藏品知识库，包含玉器、青铜器、乐器等各类文物信息，最重要的是还存储有图片信息。",
+      "kb_type": "chroma",
+      "created_at": "2025-10-30T09:07:46.308313Z",
+      "additional_params": {
+        "llm_info": null,
+        "storage": "DemoA"
+      }
     }
   },
-  "updated_at": "2025-10-29T07:42:12.865815Z",
+  "updated_at": "2025-10-30T09:07:46.308313Z",
   "version": "2.0"
 }

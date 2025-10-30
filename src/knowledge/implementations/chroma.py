@@ -149,6 +149,62 @@ class ChromaKB(KnowledgeBase):
             logger.error(f"Failed to create vector collection for {db_id}: {e}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return None
+
+    async def _get_image_chroma_collection(self, db_id: str):
+        """获取或创建图片专用的 ChromaDB 集合（使用512维嵌入）"""
+        if db_id not in self.databases_meta:
+            return None
+
+        # 为图片嵌入创建专门的集合名称
+        image_collection_name = f"{db_id}_images"
+
+        try:
+            # 检查集合是否已存在
+            if image_collection_name in self.collections:
+                return self.collections[image_collection_name]
+
+            # 尝试获取现有集合
+            try:
+                collection = self.chroma_client.get_collection(name=image_collection_name)
+                logger.info(f"Retrieved existing image collection: {image_collection_name}")
+                self.collections[image_collection_name] = collection
+                return collection
+            except Exception:
+                # 创建新集合 - 使用自定义嵌入函数，固定维度为512
+                # 对于图片嵌入，我们不需要实际的嵌入函数，因为嵌入已经由CLIP模型生成
+                # 我们创建一个空的嵌入函数，但指定维度为512
+                class ImageEmbeddingFunction:
+                    def __init__(self):
+                        pass
+                    
+                    def __call__(self, texts):
+                        # 返回与文本数量相同的512维零向量
+                        # 实际嵌入会在外部生成
+                        return [[0.0] * 512 for _ in texts]
+
+                embed_function = ImageEmbeddingFunction()
+
+                # 创建集合元数据
+                collection_metadata = {
+                    "db_id": db_id,
+                    "created_at": utc_isoformat(),
+                    "embedding_model": "clip_image_embedding",
+                    "embedding_dimension": 512
+                }
+
+                collection = self.chroma_client.create_collection(
+                    name=image_collection_name, 
+                    embedding_function=embed_function,
+                    metadata=collection_metadata
+                )
+                
+                logger.info(f"Created new image collection: {image_collection_name}")
+                self.collections[image_collection_name] = collection
+                return collection
+
+        except Exception as e:
+            logger.error(f"Failed to get/create image collection {image_collection_name}: {e}")
+            return None
     def parse_json_into_embedding_chunks(self, json_content: str, file_id: str, filename: str, params: dict) -> list[dict]:
         """将JSON解析成嵌入块"""
         import json
@@ -328,7 +384,7 @@ class ChromaKB(KnowledgeBase):
         if db_id not in self.databases_meta:
             raise ValueError(f"Database {db_id} not found")
 
-        collection = await self._get_chroma_collection(db_id)
+        collection = await self._get_image_chroma_collection(db_id)
         if not collection:
             raise ValueError(f"Failed to get ChromaDB collection for {db_id}")
 
@@ -364,7 +420,7 @@ class ChromaKB(KnowledgeBase):
                     else:  # URL    
                         markdown_content = await process_url_to_markdown(item, params=params)
                 chunks = []
-                if file_ext == "json":
+                if file_ext == ".json":
                     chunks = self.parse_json_into_embedding_chunks(json_content, file_id, filename, params)
                 else:
                     # 分割文本成块
@@ -419,75 +475,157 @@ class ChromaKB(KnowledgeBase):
         return processed_items_info
                     
     
-    async def aquery(self, db_id: str ,query_text: str = "" ,img_path: str = "", **kwargs) -> list[dict]:
-        """异步查询知识库"""
-        collection = await self._get_chroma_collection(db_id)
-        if not collection:
-            raise ValueError(f"Database {db_id} not found")
+    # async def aquery(self, db_id: str ,query_text: str = "" ,img_path: str = "", **kwargs) -> list[dict]:
+    #     """异步查询知识库"""
+    #     collection = await self._get_chroma_collection(db_id)
+    #     if not collection:
+    #         raise ValueError(f"Database {db_id} not found")
 
+    #     try:
+    #         top_k = kwargs.get("top_k", 10)
+    #         similarity_threshold = kwargs.get("similarity_threshold", 0.0)
+            
+    #         img_query_results = None
+    #         text_query_results = None
+    #         if img_path == "" and query_text == "":
+    #             raise ValueError("Either query_text or query_embeddings must be provided")
+    #         if img_path != "":
+    #             query_embeddings = get_image_embedding(img_path)
+    #             img_query_results = collection.query(
+    #                 query_embeddings=query_embeddings, n_results=top_k, include=["documents", "metadatas", "distances"]
+    #             )
+    #         if query_text != "":
+    #             text_query_results = collection.query(
+    #                 query_texts=[query_text], n_results=top_k, include=["documents", "metadatas", "distances"]
+    #             )
+
+    #         # if not img_query_results or not img_query_results.get("documents") or not img_query_results["documents"][0]:
+    #         #     return []
+    #         documents = []
+    #         metadatas = []
+    #         distances = []
+    #         # 处理文本查询结果
+    #         # 先判断 text_query_results 非空，且 documents 存在且是 non-empty 列表
+    #         if text_query_results and text_query_results.get("documents") and len(text_query_results["documents"]) > 0 and text_query_results["documents"][0]:
+    #             documents.extend(text_query_results["documents"][0])
+    #             metadatas.extend(text_query_results["metadatas"][0] if (text_query_results.get("metadatas") and len(text_query_results["metadatas"]) > 0) else [])
+    #             distances.extend(text_query_results["distances"][0] if (text_query_results.get("distances") and len(text_query_results["distances"]) > 0) else [])
+
+    #         # 处理图片查询结果（同理）
+    #         if img_query_results and img_query_results.get("documents") and len(img_query_results["documents"]) > 0 and img_query_results["documents"][0]:
+    #             documents.extend(img_query_results["documents"][0])
+    #             metadatas.extend(img_query_results["metadatas"][0] if (img_query_results.get("metadatas") and len(img_query_results["metadatas"]) > 0) else [])
+    #             distances.extend(img_query_results["distances"][0] if (img_query_results.get("distances") and len(img_query_results["distances"]) > 0) else [])
+
+    #         retrieved_chunks = []
+    #         for i, doc in enumerate(documents):
+    #             similarity = 1 - distances[i] if i < len(distances) else 1.0
+
+    #             if similarity < similarity_threshold:
+    #                 continue
+
+    #             metadata = metadatas[i] if i < len(metadatas) else {}
+    #             # 确保 file_id 在元数据中，并使用统一的键名
+    #             if "full_doc_id" in metadata:
+    #                 metadata["file_id"] = metadata.pop("full_doc_id")
+    #             # chunk去重
+    #             has_same_chunk_id = False
+    #             for chunk in retrieved_chunks:
+    #                 if chunk.get("metadata").get("chunk_id") == metadata.get("chunk_id"):
+    #                     has_same_chunk_id = True
+    #                     break
+    #             if not has_same_chunk_id:
+    #                 retrieved_chunks.append({"content": doc, "metadata": metadata, "score": similarity})
+
+    #         logger.debug(f"ChromaDB query response: {len(retrieved_chunks)} chunks found (after similarity filtering)")
+    #         return retrieved_chunks
+
+    #     except Exception as e:
+    #         logger.error(f"ChromaDB query error: {e}, {traceback.format_exc()}")
+    #         return []
+
+    async def aquery(self, db_id: str ,query_text: str = "" ,img_path: str = "", **kwargs) -> list[dict]:
+        """异步查询ChromaDB集合"""
         try:
+            # 获取文本集合和图片集合
+            text_collection = await self._get_chroma_collection(db_id)
+            image_collection = await self._get_image_chroma_collection(db_id)
+            if not text_collection and not image_collection:
+                raise Exception(f"No collections found for db_id: {db_id}")
+
+            # 处理查询参数
             top_k = kwargs.get("top_k", 10)
             similarity_threshold = kwargs.get("similarity_threshold", 0.0)
-            
-            img_query_results = None
-            text_query_results = None
-            if img_path == "" and query_text == "":
-                raise ValueError("Either query_text or query_embeddings must be provided")
-            if img_path != "":
-                query_embeddings = get_image_embedding(img_path)
-                img_query_results = collection.query(
-                    query_embeddings=query_embeddings, n_results=top_k, include=["documents", "metadatas", "distances"]
+
+            results = []
+
+            # 查询文本集合
+            if text_collection and query_text:
+                text_results = text_collection.query(
+                    query_texts=[query_text],
+                    n_results=top_k,
+                    include=["documents", "metadatas", "distances"]
                 )
-            if query_text != "":
-                text_query_results = collection.query(
-                    query_texts=[query_text], n_results=top_k, include=["documents", "metadatas", "distances"]
-                )
+                
+                if text_results and text_results.get("documents"):
+                    for i, doc in enumerate(text_results["documents"][0]):
+                        if doc:
+                            result = {
+                                "content": doc,
+                                "metadata": text_results["metadatas"][0][i] if text_results.get("metadatas") else {},
+                                "score": text_results["distances"][0][i] if text_results.get("distances") else 0.0
+                            }
+                            results.append(result)
+
+            # 查询图片集合
+            if image_collection and img_path:
+                # 获取图片嵌入
+                image_embedding = get_image_embedding(img_path)
+                if image_embedding is not None and len(image_embedding) > 0:
+                    image_results = image_collection.query(
+                        query_embeddings=[image_embedding],
+                        n_results=top_k,
+                        include=["documents", "metadatas", "distances"]
+                    )
+                    
+                    if image_results and image_results.get("documents"):
+                        for i, doc in enumerate(image_results["documents"][0]):
+                            if doc:
+                                result = {
+                                    "content": doc,
+                                    "metadata": image_results["metadatas"][0][i] if image_results.get("metadatas") else {},
+                                    "score": image_results["distances"][0][i] if image_results.get("distances") else 0.0
+                                }
+                                results.append(result)
+
+            # 去重和排序
+            seen_chunks = set()
+            unique_results = []
             
+            for result in results:
+                chunk_id = result["metadata"].get("chunk_id")
+                if chunk_id and chunk_id not in seen_chunks:
+                    seen_chunks.add(chunk_id)
+                    unique_results.append(result)
 
-            # if not img_query_results or not img_query_results.get("documents") or not img_query_results["documents"][0]:
-            #     return []
-            documents = []
-            metadatas = []
-            distances = []
-            # 处理文本查询结果
-            # 先判断 text_query_results 非空，且 documents 存在且是 non-empty 列表
-            if text_query_results and text_query_results.get("documents") and len(text_query_results["documents"]) > 0 and text_query_results["documents"][0]:
-                documents.extend(text_query_results["documents"][0])
-                metadatas.extend(text_query_results["metadatas"][0] if (text_query_results.get("metadatas") and len(text_query_results["metadatas"]) > 0) else [])
-                distances.extend(text_query_results["distances"][0] if (text_query_results.get("distances") and len(text_query_results["distances"]) > 0) else [])
+            # 按距离排序（距离越小越相似）
+            unique_results.sort(key=lambda x: x["score"])
 
-            # 处理图片查询结果（同理）
-            if img_query_results and img_query_results.get("documents") and len(img_query_results["documents"]) > 0 and img_query_results["documents"][0]:
-                documents.extend(img_query_results["documents"][0])
-                metadatas.extend(img_query_results["metadatas"][0] if (img_query_results.get("metadatas") and len(img_query_results["metadatas"]) > 0) else [])
-                distances.extend(img_query_results["distances"][0] if (img_query_results.get("distances") and len(img_query_results["distances"]) > 0) else [])
+            # 应用相似度过滤
+            filtered_results = []
+            
+            for result in unique_results:
+                # 将距离转换为相似度（1 - 距离）
+                similarity = 1 - result["score"]
+                if similarity >= similarity_threshold:
+                    result["similarity"] = similarity
+                    filtered_results.append(result)
 
-            retrieved_chunks = []
-            for i, doc in enumerate(documents):
-                similarity = 1 - distances[i] if i < len(distances) else 1.0
-
-                if similarity < similarity_threshold:
-                    continue
-
-                metadata = metadatas[i] if i < len(metadatas) else {}
-                # 确保 file_id 在元数据中，并使用统一的键名
-                if "full_doc_id" in metadata:
-                    metadata["file_id"] = metadata.pop("full_doc_id")
-                # chunk去重
-                has_same_chunk_id = False
-                for chunk in retrieved_chunks:
-                    if chunk.get("metadata").get("chunk_id") == metadata.get("chunk_id"):
-                        has_same_chunk_id = True
-                        break
-                if not has_same_chunk_id:
-                    retrieved_chunks.append({"content": doc, "metadata": metadata, "score": similarity})
-
-            logger.debug(f"ChromaDB query response: {len(retrieved_chunks)} chunks found (after similarity filtering)")
-            return retrieved_chunks
-
+            return filtered_results[:top_k]
         except Exception as e:
-            logger.error(f"ChromaDB query error: {e}, {traceback.format_exc()}")
+            logger.error(f"Error querying ChromaDB for db_id {db_id}: {e}")
             return []
+
 
     async def delete_file(self, db_id: str, file_id: str) -> None:
         """删除文件"""
