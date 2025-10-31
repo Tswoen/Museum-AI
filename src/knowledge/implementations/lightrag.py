@@ -5,6 +5,7 @@ from lightrag import LightRAG, QueryParam
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.llm.openai import openai_complete_if_cache, openai_embed
 from lightrag.utils import EmbeddingFunc, setup_logger
+from lightrag.prompt import PROMPTS
 from neo4j import GraphDatabase
 
 from src.knowledge.base import KnowledgeBase
@@ -89,8 +90,39 @@ class LightRagKB(KnowledgeBase):
         # 兼容直接放在 metadata 下的 language
         if isinstance(metadata.get("language"), str) and metadata.get("language"):
             addon_params.setdefault("language", metadata.get("language"))
-        # 默认语言从环境变量读取，默认 English
-        addon_params.setdefault("language", os.getenv("SUMMARY_LANGUAGE", "English"))
+        # 默认语言从环境变量读取，默认 Chinese
+        addon_params.setdefault("language", os.getenv("SUMMARY_LANGUAGE", "Chinese"))
+
+        # 设置博物馆文物领域的实体类型配置
+        if not addon_params.get("entity_types"):
+            addon_params["entity_types"] = [
+                "Artifact",      # 文物
+                "Period",        # 时代
+                "Site",          # 出土地
+                "Category",      # 类别
+                "Material",      # 材质
+                "Function",      # 功能
+                "Person",        # 相关人物
+                "State",         # 国别
+                "Exhibition",    # 展览
+                "Theme",         # 主题/仪式
+                "Ritual"         # 仪式
+            ]
+        
+        # 添加博物馆文物领域的自定义关系类型配置
+        if not addon_params.get("relation_types"):
+            addon_params["relation_types"] = [
+                "belongs_to",      # 属于
+                "created_in",      # 创作于
+                "discovered_at",   # 发现于
+                "made_of",         # 由...制成
+                "used_for",        # 用于
+                "related_to",      # 与...相关
+                "exhibited_in",    # 展览于
+                "part_of",         # 是...的一部分
+                "influenced_by",   # 受...影响
+                "represents"       # 代表
+            ]
 
         # 创建工作目录
         working_dir = os.path.join(self.work_dir, db_id)
@@ -102,7 +134,7 @@ class LightRagKB(KnowledgeBase):
             workspace=db_id,
             llm_model_func=self._get_llm_func(llm_info),
             embedding_func=self._get_embedding_func(embed_info),
-            vector_storage="ChromaVectorDBStorage",
+            vector_storage="FaissVectorDBStorage",
             kv_storage="JsonKVStorage",
             graph_storage="Neo4JStorage",
             doc_status_storage="JsonDocStatusStorage",
@@ -246,6 +278,9 @@ class LightRagKB(KnowledgeBase):
 
         return processed_items_info
 
+    async def add_image_embeddings(self, db_id: str, items: list[str], params: dict | None) -> list[dict]:
+        pass
+    
     async def aquery(self, query_text: str, db_id: str, **kwargs) -> str:
         """异步查询知识库"""
         rag = await self._get_lightrag_instance(db_id)

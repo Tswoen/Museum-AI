@@ -324,7 +324,54 @@
       },
       "error": null,
       "cancel_requested": false
+    },
+    {
+      "id": "320fa5699531491c8d824974075cb211",
+      "name": "知识库文档处理(kb_9f77f83a674ae5a92a39a09b46f8b0a0)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-10-31T08:51:38.698396Z",
+      "updated_at": "2025-10-31T08:55:46.061375Z",
+      "started_at": "2025-10-31T08:51:38.738351Z",
+      "completed_at": "2025-10-31T08:55:46.061375Z",
+      "payload": {
+        "db_id": "kb_9f77f83a674ae5a92a39a09b46f8b0a0",
+        "items": [
+          "./saves\\knowledge_base_data\\lightrag_data\\kb_9f77f83a674ae5a92a39a09b46f8b0a0\\uploads\\extracted_local_data_d7ed.txt"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_9f77f83a674ae5a92a39a09b46f8b0a0",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_9f77f83a674ae5a92a39a09b46f8b0a0",
+            "filename": "extracted_local_data_d7ed.txt",
+            "path": "saves\\knowledge_base_data\\lightrag_data\\kb_9f77f83a674ae5a92a39a09b46f8b0a0\\uploads\\extracted_local_data_d7ed.txt",
+            "file_type": "txt",
+            "status": "done",
+            "created_at": "2025-10-31T08:51:38.906445Z",
+            "file_id": "file_3dc3ef",
+            "content_hash": "ece079a60178ddec79993f1bd6cb7a2010287f6f177986c6c5274f69afeec05e"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
     }
   ],
-  "updated_at": "2025-10-30T12:24:55.033600Z"
+  "updated_at": "2025-10-31T08:55:46.066434Z"
 }

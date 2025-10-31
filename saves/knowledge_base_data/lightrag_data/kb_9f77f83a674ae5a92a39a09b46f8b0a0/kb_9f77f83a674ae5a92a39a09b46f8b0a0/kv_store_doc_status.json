@@ -1,0 +1,17 @@
+{
+  "file_3dc3ef": {
+    "status": "failed",
+    "error_msg": "`玉带钩`: failed to obtain a connection from the pool within 30.0s (timeout)",
+    "content_summary": "# extracted_local_data_d7ed.txt\n\n1. 玉带钩：战国，长4.8，宽2cm，1965年江陵望山2号墓出土\n2. 水晶串饰：战国，1982-1986年江陵九店楚墓出土\n3. 玉剑：战国，通长48，宽8.3，厚0.5cm，1978年随州曾侯乙墓出土\n4. 鱼形玉佩：战国，两端距6.6,孔径0.3-0.4cm，1978年随州擂鼓墩曾侯乙墓出土\n5. 玉半琮：战国，通高4.8，边长6.9，厚0.8cm，1978年随州曾侯乙墓出土\n6. 谷纹玉环：战国，外径11.5，内径6....",
+    "content_length": 1016,
+    "created_at": "2025-10-31T08:51:38.928633+00:00",
+    "updated_at": "2025-10-31T16:55:45.992434",
+    "file_path": "saves\\knowledge_base_data\\lightrag_data\\kb_9f77f83a674ae5a92a39a09b46f8b0a0\\uploads\\extracted_local_data_d7ed.txt",
+    "track_id": "insert_20251031_165138_84a03156",
+    "metadata": {
+      "processing_start_time": 1761900699,
+      "processing_end_time": 1761900945
+    },
+    "chunks_list": []
+  }
+}
