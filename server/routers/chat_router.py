@@ -275,7 +275,7 @@ async def chat_agent(
         processed_query = query  # 使用外部函数的query变量
         if image_paths:
             # 将保存后的图片路径添加到消息内容中
-            image_content = "[图片附件]:\n" + "\n".join([f"- {img}" for img in image_paths])
+            image_content = "[图片附件地址]:\n" + "\n".join([f"- {img}" for img in image_paths])
             processed_query = image_content + "\n" + processed_query
         yield make_chunk(status="init", meta=meta, msg=HumanMessage(content=processed_query).model_dump())
 

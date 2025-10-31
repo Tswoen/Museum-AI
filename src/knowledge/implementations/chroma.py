@@ -573,7 +573,7 @@ class ChromaKB(KnowledgeBase):
                             result = {
                                 "content": doc,
                                 "metadata": text_results["metadatas"][0][i] if text_results.get("metadatas") else {},
-                                "score": text_results["distances"][0][i] if text_results.get("distances") else 0.0
+                                "score": 1-text_results["distances"][0][i] if text_results.get("distances") else 0.0
                             }
                             results.append(result)
 
@@ -594,7 +594,7 @@ class ChromaKB(KnowledgeBase):
                                 result = {
                                     "content": doc,
                                     "metadata": image_results["metadatas"][0][i] if image_results.get("metadatas") else {},
-                                    "score": image_results["distances"][0][i] if image_results.get("distances") else 0.0
+                                    "score": 1-image_results["distances"][0][i] if image_results.get("distances") else 0.0
                                 }
                                 results.append(result)
 
@@ -609,14 +609,14 @@ class ChromaKB(KnowledgeBase):
                     unique_results.append(result)
 
             # 按距离排序（距离越小越相似）
-            unique_results.sort(key=lambda x: x["score"])
+            unique_results.sort(key=lambda x: 1-x["score"])
 
             # 应用相似度过滤
             filtered_results = []
             
             for result in unique_results:
                 # 将距离转换为相似度（1 - 距离）
-                similarity = 1 - result["score"]
+                similarity = result["score"]
                 if similarity >= similarity_threshold:
                     result["similarity"] = similarity
                     filtered_results.append(result)
