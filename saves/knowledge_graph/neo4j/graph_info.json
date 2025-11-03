@@ -3,9 +3,12 @@
   "entity_count": 0,
   "relationship_count": 0,
   "triples_count": 0,
-  "labels": [],
+  "labels": [
+    "kb_9f77f83a674ae5a92a39a09b46f8b0a0",
+    "artifact"
+  ],
   "status": "open",
   "embed_model_name": "siliconflow/BAAI/bge-m3",
   "unindexed_node_count": 0,
-  "last_updated": "2025-10-31T08:37:04.551930Z"
+  "last_updated": "2025-11-01T02:05:52.329310Z"
 }

@@ -21,17 +21,17 @@
     }
   },
   "files": {
-    "file_3dc3ef": {
+    "file_55c003": {
       "database_id": "kb_9f77f83a674ae5a92a39a09b46f8b0a0",
-      "filename": "extracted_local_data_d7ed.txt",
-      "path": "saves\\knowledge_base_data\\lightrag_data\\kb_9f77f83a674ae5a92a39a09b46f8b0a0\\uploads\\extracted_local_data_d7ed.txt",
+      "filename": "extracted_local_data_6895.txt",
+      "path": "saves\\knowledge_base_data\\lightrag_data\\kb_9f77f83a674ae5a92a39a09b46f8b0a0\\uploads\\extracted_local_data_6895.txt",
       "file_type": "txt",
       "status": "done",
-      "created_at": "2025-10-31T08:51:38.906445Z",
-      "file_id": "file_3dc3ef",
+      "created_at": "2025-11-01T02:10:12.038808Z",
+      "file_id": "file_55c003",
       "content_hash": "ece079a60178ddec79993f1bd6cb7a2010287f6f177986c6c5274f69afeec05e"
     }
   },
   "kb_type": "lightrag",
-  "updated_at": "2025-10-31T08:55:46.000675Z"
+  "updated_at": "2025-11-01T02:15:48.074027Z"
 }
