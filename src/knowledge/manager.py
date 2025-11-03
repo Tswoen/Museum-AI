@@ -2,8 +2,10 @@ import asyncio
 import json
 import os
 
+from src import config
 from src.knowledge.base import KBNotFoundError, KnowledgeBase
 from src.knowledge.factory import KnowledgeBaseFactory
+from src.models.rerank import get_reranker
 from src.utils import logger
 from src.utils.datetime_utils import coerce_any_to_utc_datetime, utc_isoformat
 
@@ -219,10 +221,42 @@ class KnowledgeBaseManager:
         kb_instance = self._get_kb_for_database(db_id)
         return await kb_instance.add_image_embeddings(db_id, items, params or {})
 
-    async def aquery(self, query_text: str, db_id: str, **kwargs) -> str:
+    async def aquery(self, query_text: str, db_id: str, **kwargs) -> list[dict]:
         """异步查询知识库"""
         kb_instance = self._get_kb_for_database(db_id)
-        return await kb_instance.aquery(db_id, query_text, **kwargs)
+        
+        # 执行基础查询
+        results = await kb_instance.aquery(query_text, db_id, **kwargs)
+        
+        # 检查是否启用重排序功能
+        if config.enable_reranker and results:
+            try:
+                # 获取重排序器实例
+                reranker = get_reranker(config.reranker)
+                
+                # 准备重排序输入：查询文本和所有检索结果的文本内容
+                sentences = [result["content"] for result in results]
+                sentence_pairs = (query_text, sentences)
+                
+                # 计算重排序分数
+                rerank_scores = reranker.compute_score(sentence_pairs, normalize=True)
+                
+                # 将重排序分数添加到结果中
+                for i, result in enumerate(results):
+                    if i < len(rerank_scores):
+                        result["rerank_score"] = rerank_scores[i]
+                    else:
+                        result["rerank_score"] = 0.0
+                
+                logger.debug(f"Applied reranking to {len(results)} results")
+                
+            except Exception as e:
+                logger.warning(f"Reranking failed: {e}")
+                # 重排序失败时，为所有结果添加默认的重排序分数
+                for result in results:
+                    result["rerank_score"] = result.get("score", 0.0)
+        
+        return results
 
     async def export_data(self, db_id: str, format: str = "zip", **kwargs) -> str:
         """导出知识库数据"""

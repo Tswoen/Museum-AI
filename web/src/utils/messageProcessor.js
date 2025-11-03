@@ -52,13 +52,6 @@ export class MessageProcessor {
     let currentConv = null;
 
     for (const item of filteredHistory) {
-      // 保留图片信息
-      const messageWithImages = {
-        ...item,
-        // 如果后端返回了images字段，保留它
-        images: item.images || []
-      };
-
       if (item.type === 'human') {
         // Start new conversation, finalize previous one
         if (currentConv) {
@@ -72,12 +65,12 @@ export class MessageProcessor {
           }
         }
         currentConv = {
-          messages: [messageWithImages],
+          messages: [item],
           status: 'loading'
         };
         conversations.push(currentConv);
       } else if (item.type === 'ai' && currentConv) {
-        currentConv.messages.push(messageWithImages);
+        currentConv.messages.push(item);
       }
     }
 
@@ -132,19 +125,6 @@ export class MessageProcessor {
           result.additional_kwargs.reasoning_content = '';
         }
         result.additional_kwargs.reasoning_content += chunk.additional_kwargs.reasoning_content;
-      }
-
-      // 合并图片信息 - 如果后续chunk有图片信息，合并到结果中
-      if (chunk.images && Array.isArray(chunk.images)) {
-        if (!result.images) {
-          result.images = [];
-        }
-        // 避免重复添加相同的图片
-        for (const image of chunk.images) {
-          if (!result.images.some(img => img === image)) {
-            result.images.push(image);
-          }
-        }
       }
 
       // 合并tool_calls
