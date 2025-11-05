@@ -20,7 +20,7 @@ from src.knowledge.utils.kb_utils import (
     split_text_into_chunks,
     split_text_into_qa_chunks,
 )
-from src.knowledge.utils.image_embedding_utils import get_image_embedding
+from src.knowledge.utils.image_embedding_utils import get_image_embedding, get_image_description
 from src.utils import logger
 from src.utils.datetime_utils import utc_isoformat
 
@@ -212,10 +212,31 @@ class ChromaKB(KnowledgeBase):
         chunks = []
         for chunk_index, artifact in enumerate(artifacts):
             image_url = artifact ["image_url"]
+            description = get_image_description(image_url)
             image_embedding = get_image_embedding(image_url)
-            chunk = {
+            img_chunk = {
                 "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}",
                 "embeddings": image_embedding,
+                "id": f"{file_id}_chunk_{chunk_index}",
+                "file_id": file_id,
+                "filename": filename,
+                "chunk_index": chunk_index,
+                "source": filename,
+                "chunk_id": f"{file_id}_chunk_{chunk_index}",
+                "metadata": {
+                    "description": artifact ["description"],
+                    "name": artifact ["name"],
+                    "image_url": artifact ["image_url"],
+                    "detail_url": artifact ["detail_url"], 
+                    "full_doc_id": file_id,
+                    "source": filename,
+                    "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
+                    "chunk_type": "normal",
+                }
+            }
+            desc_chunk = {
+                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}",
+                "embeddings": desc_embedding,
                 "id": f"{file_id}_chunk_{chunk_index}",
                 "file_id": file_id,
                 "filename": filename,

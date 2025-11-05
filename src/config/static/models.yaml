@@ -81,9 +81,9 @@ MODEL_NAMES:
     default: doubao-seed-1-6-250615
     env: ARK_API_KEY
     models:
-      - doubao-seed-1-6-250615
+      - doubao-seed-1-6-251015
       - doubao-seed-1-6-thinking-250715
-      - doubao-seed-1-6-flash-250715
+      - doubao-seed-1-6-flash-250828
 
   openrouter:
     name: OpenRouter
@@ -137,3 +137,14 @@ RERANKER_LIST:
     name: BAAI/bge-reranker-v2-m3
     base_url: http://localhost:8000/v1/rerank
     api_key: no_api_key
+
+VL_MODEL_INFO:
+
+  ark:
+    name: 豆包（Ark）
+    url: https://console.volcengine.com/ark/region:ark+cn-beijing/model
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    default: doubao-seed-1-6-vision-250815
+    env: ARK_API_KEY
+    models:
+      - doubao-seed-1-6-vision-250815

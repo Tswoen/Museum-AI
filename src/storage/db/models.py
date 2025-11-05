@@ -38,7 +38,14 @@ class Conversation(Base):
             if dt_value is None:
                 return None
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                # 兼容不同Python版本的UTC时区设置
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         return {
@@ -79,7 +86,13 @@ class Message(Base):
             if dt_value is None:
                 return None
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         return {
@@ -126,7 +139,13 @@ class ToolCall(Base):
             if dt_value is None:
                 return None
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         return {
@@ -166,7 +185,13 @@ class ConversationStats(Base):
             if dt_value is None:
                 return None
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         return {
@@ -215,7 +240,13 @@ class User(Base):
                 return None
             # 如果是 naive datetime，假设它是 UTC（因为代码中使用 utc_now() 存储）
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         result = {
@@ -300,7 +331,13 @@ class OperationLog(Base):
             if dt_value is None:
                 return None
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         return {
@@ -335,7 +372,13 @@ class MessageFeedback(Base):
             if dt_value is None:
                 return None
             if dt_value.tzinfo is None:
-                dt_value = dt_value.replace(tzinfo=dt.UTC)
+                try:
+                    # Python 3.11+ 使用datetime.UTC
+                    dt_value = dt_value.replace(tzinfo=dt.UTC)
+                except AttributeError:
+                    # Python 3.10及以下版本使用timezone.utc
+                    from datetime import timezone
+                    dt_value = dt_value.replace(tzinfo=timezone.utc)
             return utc_isoformat(dt_value)
 
         return {

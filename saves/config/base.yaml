@@ -1,0 +1,16 @@
+content_guard_llm_model: siliconflow/Qwen/Qwen3-235B-A22B-Instruct-2507
+default_agent_id: ''
+default_model: siliconflow/deepseek-ai/DeepSeek-V3.2-Exp
+embed_model: siliconflow/BAAI/bge-m3
+enable_content_guard: false
+enable_content_guard_llm: false
+enable_reranker: false
+fast_model: siliconflow/THUDM/GLM-4-9B-0414
+filename: saves\config\base.yaml
+model_dir: ./models
+reranker: siliconflow/BAAI/bge-reranker-v2-m3
+save_dir: ./saves
+valuable_model_provider:
+- siliconflow
+- dashscope
+- ark

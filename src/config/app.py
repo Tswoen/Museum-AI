@@ -47,7 +47,7 @@ class Config(SimpleConfig):
 
         ### >>> 默认配置
         # 功能选项
-        self.add_item("enable_reranker", default=False, des="是否开启重排序")
+        self.add_item("enable_reranker", default=True, des="是否开启重排序")
         self.add_item("enable_content_guard", default=False, des="是否启用内容审查")
         self.add_item("enable_content_guard_llm", default=False, des="是否启用LLM内容审查")
         self.add_item(
@@ -81,6 +81,13 @@ class Config(SimpleConfig):
             des="Re-Ranker 模型",
             choices=list(self.reranker_names.keys()),
         )  # noqa: E501
+        # VL模型配置
+        self.add_item(
+            "vl_model",
+            default=self._get_default_vl_model_spec(),
+            des="视觉语言模型",
+            choices=list(self.vl_model_names.keys()),
+        )
         ### <<< 默认配置结束
 
         self.load()
@@ -126,6 +133,7 @@ class Config(SimpleConfig):
         self.model_names = _models["MODEL_NAMES"]
         self.embed_model_names = _models["EMBED_MODEL_INFO"]
         self.reranker_names = _models["RERANKER_LIST"]
+        self.vl_model_names = _models.get("VL_MODEL_INFO", {})
 
     def _save_models_to_file(self):
         """
@@ -138,6 +146,7 @@ class Config(SimpleConfig):
             "MODEL_NAMES": self.model_names,
             "EMBED_MODEL_INFO": self.embed_model_names,
             "RERANKER_LIST": self.reranker_names,
+            "VL_MODEL_INFO": self.vl_model_names,
         }
 
         with open(self._models_config_path, "w", encoding="utf-8") as f:
@@ -153,6 +162,26 @@ class Config(SimpleConfig):
                 return f"{preferred_provider}/{default_model}"
 
         for provider, info in (self.model_names or {}).items():
+            default_model = info.get("default")
+            if default_model:
+                return f"{provider}/{default_model}"
+
+        return ""
+
+    def _get_default_vl_model_spec(self):
+        """选择一个默认的视觉语言模型"""
+        if not self.vl_model_names:
+            return ""
+        
+        # 优先使用ark模型
+        if "ark" in self.vl_model_names:
+            provider_info = self.vl_model_names["ark"]
+            default_model = provider_info.get("default")
+            if default_model:
+                return f"ark/{default_model}"
+        
+        # 使用第一个可用的VL模型
+        for provider, info in self.vl_model_names.items():
             default_model = info.get("default")
             if default_model:
                 return f"{provider}/{default_model}"
@@ -189,11 +218,22 @@ class Config(SimpleConfig):
             else:
                 self.model_provider_status[provider] = bool(os.getenv(env_var))
 
+        # 检查VL模型提供商的环境变量
+        self.vl_model_provider_status = {}
+        for provider in self.vl_model_names:
+            env_var = self.vl_model_names[provider]["env"]
+            # 如果环境变量名为 NO_API_KEY，则认为总是可用
+            if env_var == "NO_API_KEY":
+                self.vl_model_provider_status[provider] = True
+            else:
+                self.vl_model_provider_status[provider] = bool(os.getenv(env_var))
+
         if os.getenv("TAVILY_API_KEY"):
             self.enable_web_search = True
 
         self.valuable_model_provider = [k for k, v in self.model_provider_status.items() if v]
-        assert len(self.valuable_model_provider) > 0, "No model provider available, please check your `.env` file."
+        self.valuable_vl_model_provider = [k for k, v in self.vl_model_provider_status.items() if v]
+        assert len(self.valuable_model_provider) > 0 or len(self.valuable_vl_model_provider) > 0, "No model provider available, please check your `.env` file."
 
     def load(self):
         """根据传入的文件覆盖掉默认配置"""
