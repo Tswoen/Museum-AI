@@ -41,13 +41,21 @@ def get_static_tools() -> list:
 
 class KnowledgeRetrieverModel(BaseModel):
     query_text: str = Field(
+        default="",
         description=(
             "当用户提供的输入中包含关键词时，请提供一个查询的关键词，查询的时候，应该尽量以可能帮助回答这个问题的关键词进行查询，不要直接使用用户的原始输入去查询。如果没有请忽略这个字段。"
         )
     )
     query_img: str = Field(
+        default="",
         description=(
             "当用户提供的输入中包含图片url时，则请提供图片的URL去查询,否则请忽略这个字段。"
+        )
+    )
+    query_desc: str = Field(
+        default="",
+        description=(
+            "当用户提供的输入中包含文物的材质类型、外观、纹样、图案等信息描述时，则请提供文物的描述去查询,否则请忽略这个字段。"
         )
     )
 
@@ -61,15 +69,15 @@ def get_kb_based_tools() -> list:
     def _create_retriever_wrapper(db_id: str, retriever_info: dict[str, Any]):
         """创建检索器包装函数的工厂函数，避免闭包变量捕获问题"""
 
-        async def async_retriever_wrapper(query_text: str = "", query_img: str = "") -> Any:
+        async def async_retriever_wrapper(query_text: str = "", query_img: str = "", query_desc: str = "") -> Any:
             """异步检索器包装函数"""
             retriever = retriever_info["retriever"]
             try:
-                logger.debug(f"Retrieving from database {db_id} with query: {query_text}, query_img: {query_img}")
+                logger.debug(f"Retrieving from database {db_id} with query: {query_text}, query_img: {query_img}, query_desc: {query_desc}")
                 if asyncio.iscoroutinefunction(retriever):
-                    result = await retriever(query_text, query_img)
+                    result = await retriever(query_text, query_img, query_desc)
                 else:
-                    result = retriever(query_text, query_img)
+                    result = retriever(query_text, query_img, query_desc)
                 logger.debug(f"Retrieved {len(result) if isinstance(result, list) else 'N/A'} results from {db_id}")
                 return result
             except Exception as e:

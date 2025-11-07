@@ -20,7 +20,7 @@ from src.knowledge.utils.kb_utils import (
     split_text_into_chunks,
     split_text_into_qa_chunks,
 )
-from src.knowledge.utils.image_embedding_utils import get_image_embedding, get_image_description
+from src.knowledge.utils.image_embedding_utils import get_image_embedding, get_image_description, get_text_embedding
 from src.utils import logger
 from src.utils.datetime_utils import utc_isoformat
 
@@ -212,10 +212,11 @@ class ChromaKB(KnowledgeBase):
         chunks = []
         for chunk_index, artifact in enumerate(artifacts):
             image_url = artifact ["image_url"]
-            description = get_image_description(image_url)
+            img_desc = get_image_description(image_url)
+            desc_embedding = get_text_embedding(img_desc)
             image_embedding = get_image_embedding(image_url)
             img_chunk = {
-                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}",
+                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}\n 对应的文物图片的描述：{img_desc}",
                 "embeddings": image_embedding,
                 "id": f"{file_id}_chunk_{chunk_index}",
                 "file_id": file_id,
@@ -231,11 +232,11 @@ class ChromaKB(KnowledgeBase):
                     "full_doc_id": file_id,
                     "source": filename,
                     "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
-                    "chunk_type": "normal",
+                    "chunk_type": "img_chunk",
                 }
             }
             desc_chunk = {
-                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}",
+                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}\n 对应的文物图片的描述：{img_desc}",
                 "embeddings": desc_embedding,
                 "id": f"{file_id}_chunk_{chunk_index}",
                 "file_id": file_id,
@@ -251,10 +252,11 @@ class ChromaKB(KnowledgeBase):
                     "full_doc_id": file_id,
                     "source": filename,
                     "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
-                    "chunk_type": "normal",
+                    "chunk_type": "desc_chunk",
                 }
             }
-            chunks.append (chunk)
+            chunks.append (img_chunk)
+            chunks.append (desc_chunk)
         return chunks
 
     def split_json_into_chunks(self, json_content: str, file_id: str, filename: str, params: dict) -> list[dict]:
@@ -565,7 +567,7 @@ class ChromaKB(KnowledgeBase):
     #         logger.error(f"ChromaDB query error: {e}, {traceback.format_exc()}")
     #         return []
 
-    async def aquery(self, db_id: str ,query_text: str = "" ,img_path: str = "", **kwargs) -> list[dict]:
+    async def aquery(self, db_id: str ,query_text: str = "" ,img_path: str = "",query_desc: str = "", **kwargs) -> list[dict]:
         """异步查询ChromaDB集合"""
         try:
             # 获取文本集合和图片集合
@@ -598,7 +600,7 @@ class ChromaKB(KnowledgeBase):
                             }
                             results.append(result)
 
-            # 查询图片集合
+            # 通过图片embedding查询
             if image_collection and img_path:
                 # 获取图片嵌入
                 image_embedding = get_image_embedding(img_path)
@@ -618,19 +620,40 @@ class ChromaKB(KnowledgeBase):
                                     "score": 1-image_results["distances"][0][i] if image_results.get("distances") else 0.0
                                 }
                                 results.append(result)
-
-            # 去重和排序
+            # 通过描述embedding查询
+            if text_collection and query_desc:
+                # 获取描述嵌入
+                desc_embedding = get_text_embedding(query_desc)
+                if desc_embedding is not None and len(desc_embedding) > 0:
+                    desc_results = text_collection.query(
+                        query_embeddings=[desc_embedding],
+                        n_results=top_k,
+                        include=["documents", "metadatas", "distances"]
+                    )
+                    
+                    if desc_results and desc_results.get("documents"):
+                        for i, doc in enumerate(desc_results["documents"][0]):
+                            if doc:
+                                result = {
+                                    "content": doc,
+                                    "metadata": desc_results["metadatas"][0][i] if desc_results.get("metadatas") else {},
+                                    "score": 1-desc_results["distances"][0][i] if desc_results.get("distances") else 0.0    
+                                }
+                                results.append(result)
+            # 去重和排序（先排序，再去重）
             seen_chunks = set()
             unique_results = []
-            
+
+            # 按距离排序（距离越小越相似）
+            results.sort(key=lambda x: 1-x["score"])
+
             for result in results:
                 chunk_id = result["metadata"].get("chunk_id")
                 if chunk_id and chunk_id not in seen_chunks:
                     seen_chunks.add(chunk_id)
                     unique_results.append(result)
 
-            # 按距离排序（距离越小越相似）
-            unique_results.sort(key=lambda x: 1-x["score"])
+            
 
             # 应用相似度过滤
             filtered_results = []
