@@ -418,7 +418,195 @@
       },
       "error": null,
       "cancel_requested": false
+    },
+    {
+      "id": "980808924d0d48f0ad0fd73432252bad",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-11-10T01:46:47.657395Z",
+      "updated_at": "2025-11-10T01:52:19.939271Z",
+      "started_at": "2025-11-10T01:46:47.691470Z",
+      "completed_at": "2025-11-10T01:52:19.939271Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_ee62.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_qtq_ee62.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_ee62.json",
+            "file_type": "json",
+            "status": "done",
+            "created_at": "2025-11-10T01:46:53.485552Z",
+            "file_id": "file_8f2809",
+            "content_hash": "dfeb5c7cee1dbc827a60654a28860c93b5785058c524299bb6dca01948155c84"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
+    },
+    {
+      "id": "d868bff2217c4937a5716252991abd69",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-11-10T03:13:59.307554Z",
+      "updated_at": "2025-11-10T03:14:04.645060Z",
+      "started_at": "2025-11-10T03:13:59.346467Z",
+      "completed_at": "2025-11-10T03:14:04.645060Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_b3c3.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_qtq_b3c3.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_b3c3.json",
+            "file_type": "json",
+            "status": "done",
+            "created_at": "2025-11-10T03:14:03.917171Z",
+            "file_id": "file_5a77d2",
+            "content_hash": "dfeb5c7cee1dbc827a60654a28860c93b5785058c524299bb6dca01948155c84"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
+    },
+    {
+      "id": "7add0da1191d4ed2963a36b3c6e6bb8b",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-11-10T03:20:28.538828Z",
+      "updated_at": "2025-11-10T03:20:33.514112Z",
+      "started_at": "2025-11-10T03:20:28.581087Z",
+      "completed_at": "2025-11-10T03:20:33.463500Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_2df5.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 1,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_qtq_2df5.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_2df5.json",
+            "file_type": "json",
+            "status": "failed",
+            "created_at": "2025-11-10T03:20:33.366971Z",
+            "file_id": "file_4839cd",
+            "content_hash": "dfeb5c7cee1dbc827a60654a28860c93b5785058c524299bb6dca01948155c84"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
+    },
+    {
+      "id": "06369665637948da8200f6d5a303afd4",
+      "name": "知识库文档处理(kb_6d4cc92dae95b3b9b26dadc891b27f99)",
+      "type": "knowledge_ingest",
+      "status": "success",
+      "progress": 100.0,
+      "message": "任务已完成",
+      "created_at": "2025-11-10T03:27:59.244345Z",
+      "updated_at": "2025-11-10T03:32:40.783908Z",
+      "started_at": "2025-11-10T03:27:59.289443Z",
+      "completed_at": "2025-11-10T03:32:40.783908Z",
+      "payload": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "items": [
+          "./saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_9768.json"
+        ],
+        "params": {
+          "chunk_size": 1000,
+          "chunk_overlap": 200,
+          "enable_ocr": "disable",
+          "use_qa_split": false,
+          "qa_separator": "\n\n\n",
+          "content_type": "file"
+        },
+        "content_type": "file"
+      },
+      "result": {
+        "db_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+        "item_type": "文件",
+        "submitted": 1,
+        "failed": 0,
+        "items": [
+          {
+            "database_id": "kb_6d4cc92dae95b3b9b26dadc891b27f99",
+            "filename": "hubei_museum_qtq_9768.json",
+            "path": "saves\\knowledge_base_data\\chroma_data\\kb_6d4cc92dae95b3b9b26dadc891b27f99\\uploads\\hubei_museum_qtq_9768.json",
+            "file_type": "json",
+            "status": "done",
+            "created_at": "2025-11-10T03:27:59.482949Z",
+            "file_id": "file_fadf9a",
+            "content_hash": "dfeb5c7cee1dbc827a60654a28860c93b5785058c524299bb6dca01948155c84"
+          }
+        ]
+      },
+      "error": null,
+      "cancel_requested": false
     }
   ],
-  "updated_at": "2025-11-01T02:15:48.119245Z"
+  "updated_at": "2025-11-10T03:32:40.797437Z"
 }

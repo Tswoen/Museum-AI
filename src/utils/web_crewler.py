@@ -224,7 +224,9 @@ class HubeiMuseumScraper:
     def scrape_all_artifacts(self, start_url=None):
         """爬取所有文物信息"""
         if not start_url:
-            start_url = "http://hbsbwg.cjyun.org/yuqi/index.html"
+            # start_url = "http://hbsbwg.cjyun.org/yuqi/index.html"
+            start_url = "http://hbsbwg.cjyun.org/qtq/index.html"
+            
         
         print("开始爬取文物列表...")
         html = self.get_list_page(start_url)
@@ -253,13 +255,13 @@ class HubeiMuseumScraper:
         
         return artifacts
     
-    def save_to_json(self, artifacts, filename="hubei_museum_artifacts.json"):
+    def save_to_json(self, artifacts, filename="hubei_museum_qtq.json"):
         """保存结果到JSON文件"""
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(artifacts, f, ensure_ascii=False, indent=2)
         print(f"数据已保存到 {filename}")
     
-    def save_to_csv(self, artifacts, filename="hubei_museum_artifacts.csv"):
+    def save_to_csv(self, artifacts, filename="hubei_museum_qtq.csv"):
         """保存结果到CSV文件"""
         import csv
         

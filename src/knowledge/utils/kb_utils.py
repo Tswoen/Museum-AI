@@ -2,6 +2,7 @@ import hashlib
 import os
 import time
 from pathlib import Path
+import json
 
 from langchain_text_splitters import MarkdownTextSplitter
 
@@ -229,3 +230,54 @@ def get_embedding_config(embed_info: dict) -> dict:
 
     logger.debug(f"Embedding config: {config_dict}")
     return config_dict
+
+def validate_img_embedding_file(file_path: str) -> bool:
+                
+    # 校验文件格式
+    file_path_obj = Path(file_path)
+    file_ext = file_path_obj.suffix.lower()
+    
+    # 必须是JSON文件
+    if file_ext != ".json":
+        return False
+        
+    # 校验JSON文件格式
+    if not file_path_obj.exists():
+        return False
+        
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            json_content = json.load(f)
+    except json.JSONDecodeError as e:
+        return False
+        
+        # 校验JSON结构是否符合hubei_museum_artifacts.json格式
+    if not isinstance(json_content, list):
+        return False
+        
+    required_fields = {"name", "image_url", "detail_url", "description"}
+    for i, artifact in enumerate(json_content):
+        if not isinstance(artifact, dict):
+            return False
+            
+        missing_fields = required_fields - set(artifact.keys())
+        if missing_fields:
+            return False
+            
+            # 校验字段类型
+        if not isinstance(artifact["name"], str):
+            return False
+        if not isinstance(artifact["image_url"], str):
+            return False
+        if not isinstance(artifact["detail_url"], str):
+            return False
+        if not isinstance(artifact["description"], str):
+            return False
+            
+            # 校验URL格式
+        if artifact["image_url"] and not artifact["image_url"].startswith(("http://", "https://")):
+            return False
+        if artifact["detail_url"] and not artifact["detail_url"].startswith(("http://", "https://")):
+            return False
+        
+    return True

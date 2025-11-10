@@ -184,9 +184,7 @@ async def add_documents(
                 file_ext = file_path_obj.suffix.lower()
                 # 处理单个文档
                 result = await knowledge_base.add_content(db_id, [item], params=params)
-                if file_ext == ".json":
-                    embedding_result = await knowledge_base.add_image_embeddings(db_id, [item], params=params)
-                    logger.debug(f"Embedding result: {embedding_result}")
+
                 processed_items.extend(result)
 
         except asyncio.CancelledError:
