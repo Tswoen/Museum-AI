@@ -6,6 +6,21 @@
 
 Museum-AI 是一个功能完整的博物馆知识管理系统，集成了向量检索和知识图谱技术，支持多种文件格式的知识库构建，并提供基于智能体的对话交互能力。
 
+## 📸 项目预览
+
+<summary>点击放大截图查看</summary>
+<img width="1536" height="1278" alt="image" src="https://github.com/user-attachments/assets/17df51c6-9341-4294-bdf5-c52f5f296c07" />
+<img width="1302" height="1146" alt="image" src="https://github.com/user-attachments/assets/2a82e0a7-b4ea-4e77-8854-28e58173de5f" />
+<img width="2382" height="969" alt="image" src="https://github.com/user-attachments/assets/2f07c124-988c-43b7-a82c-53ed1e146493" />
+
+
+
+| 截图1 | 截图2 | 截图3 |
+|-------|-------|-------|
+| <img width="400" src="https://github.com/user-attachments/assets/17df51c6-9341-4294-bdf5-c52f5f296c07" /> | <img width="400" src="https://github.com/user-attachments/assets/2a82e0a7-b4ea-4e77-8854-28e58173de5f" /> | <img width="400" src="https://github.com/user-attachments/assets/2f07c124-988c-43b7-a82c-53ed1e146493" /> |
+
+</div>
+
 ### 核心特性
 
 - **多模态知识库管理**
