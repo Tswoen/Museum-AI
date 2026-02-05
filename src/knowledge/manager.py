@@ -226,7 +226,7 @@ class KnowledgeBaseManager:
         kb_instance = self._get_kb_for_database(db_id)
         
         # 执行基础查询
-        results = await kb_instance.aquery(query_text, db_id, **kwargs)
+        results = await kb_instance.aquery(db_id, query_text,**kwargs)
         
         # 检查是否启用重排序功能
         if config.enable_reranker and results:

@@ -7,7 +7,8 @@ from src.agents.common.tools import gen_tool_info
 
 from .tools import get_tools
 
-
+# @dataclass会自动帮你生成 __init__、__repr__、__eq__ 等常用方法，不用手动写。
+# kw_only=True参数会强制该数据类的实例化必须使用关键字参数
 @dataclass(kw_only=True)
 class Context(BaseContext):
     model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(

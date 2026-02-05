@@ -210,3 +210,4 @@ saves/imgs/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+saves/knowledge_base_data/chroma_data/chromadb/chroma.sqlite3

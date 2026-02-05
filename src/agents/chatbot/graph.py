@@ -27,6 +27,7 @@ class ChatbotAgent(BaseAgent):
         self.agent_tools = None
 
     def get_tools(self):
+        # 获取所有工具
         return get_tools()
 
     async def _get_invoke_tools(self, selected_tools: list[str], selected_mcps: list[str]):
@@ -35,6 +36,7 @@ class ChatbotAgent(BaseAgent):
         如果配置为列表，则使用列表中的工具。
         """
         enabled_tools = []
+        # 如果agent_tools为空，则获取所有工具，否则使用agent_tools
         self.agent_tools = self.agent_tools or self.get_tools()
         if selected_tools and isinstance(selected_tools, list) and len(selected_tools) > 0:
             # 使用配置中指定的工具

@@ -284,3 +284,10 @@ class Config(SimpleConfig):
 
 
 config = Config()
+
+if __name__ == "__main__":
+    print("==="*10,end="")
+    print("embed_model_names")
+    print("==="*10)
+    print(config.embed_model_names)
+    print("==="*20)

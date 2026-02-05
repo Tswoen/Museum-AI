@@ -10,6 +10,7 @@ class AgentManager:
         self._instances = {}  # 存储已创建的 agent 实例
 
     def register_agent(self, agent_class):
+        # __name__ 的值为模块的名称
         self._classes[agent_class.__name__] = agent_class
 
     def init_all_agents(self):
