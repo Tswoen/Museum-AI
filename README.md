@@ -117,9 +117,6 @@ NEO4J_URI=bolt://localhost:7687
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=your_password
 
-# 管理员账户
-YUXI_SUPER_ADMIN_NAME=admin
-YUXI_SUPER_ADMIN_PASSWORD=your_password
 ```
 
 ### 3. 安装后端依赖
