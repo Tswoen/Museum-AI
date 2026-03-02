@@ -110,12 +110,13 @@ const mainList = [{
     path: '/database',
     icon: LibraryBig,
     activeIcon: LibraryBig,
-  }, {
-    name: 'Dashboard',
-    path: '/dashboard',
-    icon: BarChart3,
-    activeIcon: BarChart3,
   }
+  // , {
+  //   name: 'Dashboard',
+  //   path: '/dashboard',
+  //   icon: BarChart3,
+  //   activeIcon: BarChart3,
+  // }
 ]
 </script>
 
@@ -166,7 +167,7 @@ const mainList = [{
       ></div>
 
 
-      <div class="github nav-item">
+      <!-- <div class="github nav-item">
         <a-tooltip placement="right">
           <template #title>欢迎 Star</template>
           <a href="https://github.com/xerrors/Yuxi-Know" target="_blank" class="github-link">
@@ -176,8 +177,9 @@ const mainList = [{
             </span>
           </a>
         </a-tooltip>
-      </div>
-      <div class="nav-item docs">
+      </div> -->
+
+      <!-- <div class="nav-item docs">
         <a-tooltip placement="right">
           <template #title>文档中心</template>
           <a
@@ -188,8 +190,8 @@ const mainList = [{
           >
             <BookOpen class="icon" size="22" />
           </a>
-        </a-tooltip>
-      </div>
+        </a-tooltip> -->
+      <!-- </div> -->
       <!-- <div class="nav-item api-docs">
         <a-tooltip placement="right">
           <template #title>接口文档 {{ apiDocsUrl }}</template>

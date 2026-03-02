@@ -11,15 +11,15 @@ export const useInfoStore = defineStore('info', () => {
 
   // 计算属性 - 组织信息
   const organization = computed(() => infoConfig.value.organization || {
-    name: "江南语析",
+    name: "博古智问",
     logo: "/favicon.svg",
     avatar: "/avatar.jpg"
   })
 
   // 计算属性 - 品牌信息
   const branding = computed(() => infoConfig.value.branding || {
-    name: "Yuxi-Know",
-    title: "Yuxi-Know",
+    name: "ZhiWen-Know",
+    title: "ZhiWen-Know",
     subtitle: "大模型驱动的知识库管理工具",
     description: "结合知识库与知识图谱，提供更准确、更全面的回答"
   })
@@ -28,12 +28,13 @@ export const useInfoStore = defineStore('info', () => {
   const features = computed(() => infoConfig.value.features || [
     "📚 灵活知识库",
     "🕸️ 知识图谱集成",
-    "🤖 多模型支持"
+    "🤖 多模型切换",
+    "🖼️ 多模态支持"
   ])
 
   // 计算属性 - 页脚信息
   const footer = computed(() => infoConfig.value.footer || {
-    copyright: "© 江南语析 2025 [WIP] v0.12.138"
+    copyright: "© 博古智问 2025 [WIP] v0.12.138"
   })
 
   // 动作方法

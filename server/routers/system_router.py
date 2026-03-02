@@ -106,15 +106,15 @@ def load_info_config():
 def get_default_info_config():
     """获取默认信息配置"""
     return {
-        "organization": {"name": "江南语析", "logo": "/favicon.svg", "avatar": "/avatar.jpg"},
+        "organization": {"name": "博古智问", "logo": "/favicon.svg", "avatar": "/avatar.jpg"},
         "branding": {
-            "name": "Yuxi-Know",
-            "title": "Yuxi-Know",
+            "name": "ZhiWen-Know",
+            "title": "ZhiWen-Know",
             "subtitle": "大模型驱动的知识库管理工具",
             "description": "结合知识库与知识图谱，提供更准确、更全面的回答",
         },
-        "features": ["📚 灵活知识库", "🕸️ 知识图谱集成", "🤖 多模型支持"],
-        "footer": {"copyright": "© 江南语析 2025 [WIP] v0.3.0"},
+        "features": ["📚 灵活知识库", "🕸️ 知识图谱集成", "🤖 多模型切换", "🖼️ 多模态支持"],
+        "footer": {"copyright": "© 博古智问 2025 [WIP] v0.3.0"},
     }
 
 

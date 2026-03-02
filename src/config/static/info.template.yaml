@@ -3,15 +3,15 @@
 
 # 组织信息
 organization:
-  name: "江南语析"           # 完整组织名称
+  name: "博古智问"           # 完整组织名称
   logo: "/favicon.svg"       # Logo文件路径（放在 web/public 目录下）
   avatar: "/avatar.jpg"      # 头像文件路径（放在 web/public 目录下）
   login_bg: "/login-bg.jpg"  # 登录背景图片路径（放在 web/public 目录下）
 
 # 项目信息
 branding:
-  name: "Yuxi-Know"
-  title: "Yuxi-Know: 更智能的知识库管理工具"                           # 系统标题
+  name: "ZhiWen-Know"
+  title: "ZhiWen-Know: 更智能的知识库管理工具"                           # 系统标题
   subtitle: "大模型驱动的知识库管理工具"          # 副标题
   description: "结合知识库与知识图谱，提供更准确、更全面的回答"  # 描述信息
 

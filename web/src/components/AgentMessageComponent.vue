@@ -196,8 +196,8 @@ const extractImagesFromContent = (content) => {
   const images = [];
   let cleanedContent = content;
   
-  // 匹配 [图片附件]: 格式
-  const imagePattern = /\[图片附件\]:\s*\n(-\s*([^\n]+)\n?)+/g;
+  // 匹配 [图片附件附件]: 格式
+  const imagePattern = /\[图片附件地址\]:\s*\n(-\s*([^\n]+)\n?)+/g;
   const match = content.match(imagePattern);
   
   if (match) {

@@ -205,9 +205,15 @@ saves/model/
 saves/imgs/
 .cursorignore
 .cursorindexingignore
+.models/
+
+# 测试数据
+test/data/
 
 # Marimo
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+saves/knowledge_base_data/chroma_data/chromadb/chroma.sqlite3
+saves/database/server.db
 saves/knowledge_base_data/chroma_data/chromadb/chroma.sqlite3

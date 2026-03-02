@@ -48,6 +48,18 @@ MODEL_NAMES:
     models:
       - deepseek-ai/DeepSeek-V3.2-Exp
       - Qwen/Qwen3-235B-A22B-Thinking-2507
+      - Qwen/Qwen3-235B-A22B-Instruct-2507 
+      - moonshotai/Kimi-K2-Instruct-0905
+      - zai-org/GLM-4.6
+
+  modelscope:
+    name: ModelScope
+    url: https://modelscope.cn/models
+    base_url: https://api-inference.modelscope.cn/v1
+    default: Qwen/Qwen3-235B-A22B-Thinking-2507
+    env: MODELSCOPE_API_KEY
+    models:
+      - Qwen/Qwen3-235B-A22B-Thinking-2507
       - Qwen/Qwen3-235B-A22B-Instruct-2507
       - moonshotai/Kimi-K2-Instruct-0905
       - zai-org/GLM-4.6
@@ -110,21 +122,27 @@ EMBED_MODEL_INFO:
     base_url: https://api.siliconflow.cn/v1/embeddings
     api_key: SILICONFLOW_API_KEY
 
-  vllm/Qwen/Qwen3-Embedding-0.6B:
-    name: Qwen3-Embedding-0.6B
+  modelscope/Qwen/Qwen3-Embedding-8B:
+    name: Qwen/Qwen3-Embedding-8B
     dimension: 1024
-    base_url: http://localhost:8000/v1/embeddings
-    api_key: no_api_key
+    base_url: https://api-inference.modelscope.cn/v1
+    api_key: MODELSCOPE_API_KEY
 
-  ollama/nomic-embed-text:
-    name: nomic-embed-text
-    base_url: http://localhost:11434/api/embed
-    dimension: 768
+  # vllm/Qwen/Qwen3-Embedding-0.6B:
+  #   name: Qwen3-Embedding-0.6B
+  #   dimension: 1024
+  #   base_url: http://localhost:8000/v1/embeddings
+  #   api_key: no_api_key
 
-  ollama/bge-m3:
-    name: bge-m3
-    base_url: http://localhost:11434/api/embed
-    dimension: 1024
+  # ollama/nomic-embed-text:
+  #   name: nomic-embed-text
+  #   base_url: http://localhost:11434/api/embed
+  #   dimension: 768
+
+  # ollama/bge-m3:
+  #   name: bge-m3
+  #   base_url: http://localhost:11434/api/embed
+  #   dimension: 1024
 
 RERANKER_LIST:
 
