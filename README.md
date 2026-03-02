@@ -1,3 +1,8 @@
+<!-- <h1 align="center">基于多智能体和工作流的大模型的调研报告生成系统</h1> -->
+<h1 align="center">Museum-AI: 智能博物馆知识问答与多模态检索系统</h1>
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 # Museum-AI
 
 博物馆智能知识库与对话系统，基于 LangGraph 和 LangChain 构建的智能助手，专注于博物馆文物领域的知识管理和智能问答。
@@ -5,6 +10,15 @@
 ## 项目简介
 
 Museum-AI 是一个功能完整的博物馆知识管理系统，集成了向量检索和知识图谱技术，支持多种文件格式的知识库构建，并提供基于智能体的对话交互能力。
+
+## 📸 项目预览
+
+<summary>点击放大截图查看</summary>
+
+| 截图1 | 截图2 | 截图3 |
+|-------|-------|-------|
+| <img width="400" src="https://github.com/user-attachments/assets/17df51c6-9341-4294-bdf5-c52f5f296c07" /> | <img width="400" src="https://github.com/user-attachments/assets/2a82e0a7-b4ea-4e77-8854-28e58173de5f" /> | <img width="400" src="https://github.com/user-attachments/assets/2f07c124-988c-43b7-a82c-53ed1e146493" /> |
+
 
 ### 核心特性
 
