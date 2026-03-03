@@ -15,32 +15,32 @@ from langchain_community.document_loaders import (
 )
 
 from src.utils import logger
-
-
-SUPPORTED_FILE_EXTENSIONS: tuple[str, ...] = (
-    ".txt",
-    ".md",
-    ".doc",
-    ".docx",
-    ".html",
-    ".htm",
-    ".json",
-    ".csv",
-    ".xls",
-    ".xlsx",
-    ".pdf",
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".bmp",
-    ".tiff",
-    ".tif",
+from src.knowledge.utils.file_validator import (
+    ALL_SUPPORTED_TYPES,
+    TEXT_FILE_TYPES,
+    IMAGE_FILE_TYPES,
+    VIDEO_FILE_TYPES,
+    AUDIO_FILE_TYPES,
+    ProcessingStrategy,
+    get_all_supported_extensions,
 )
+
+
+SUPPORTED_FILE_EXTENSIONS: tuple[str, ...] = tuple(get_all_supported_extensions())
 
 
 def is_supported_file_extension(file_name: str | os.PathLike[str]) -> bool:
     """Check whether the given file path has a supported extension."""
-    return Path(file_name).suffix.lower() in SUPPORTED_FILE_EXTENSIONS
+    return Path(file_name).suffix.lower() in ALL_SUPPORTED_TYPES
+
+
+def get_file_processing_strategy(file_path: str | os.PathLike[str]) -> ProcessingStrategy:
+    """获取文件的处理策略"""
+    ext = Path(file_path).suffix.lower()
+    type_info = ALL_SUPPORTED_TYPES.get(ext)
+    if type_info:
+        return type_info.strategy
+    return ProcessingStrategy.TEXT
 
 
 def _extract_word_text(file_path: Path) -> str:

@@ -14,6 +14,17 @@ from server.services.tasker import TaskContext, tasker
 from src import config, knowledge_base
 from src.knowledge.indexing import SUPPORTED_FILE_EXTENSIONS, is_supported_file_extension, process_file_to_markdown
 from src.knowledge.utils import calculate_content_hash
+from src.knowledge.utils.file_validator import (
+    FileValidator,
+    FileValidationError,
+    FileTooLargeError,
+    UnsupportedFileTypeError,
+    FileCorruptedError,
+    FileSecurityError,
+    ProcessingStrategy,
+    get_file_types_by_category,
+    get_all_supported_extensions,
+)
 from src.models.embed import test_embedding_model_status, test_all_embedding_models_status
 from src.utils import hashstr, logger
 
@@ -572,9 +583,10 @@ async def upload_file(
     file: UploadFile = File(...),
     db_id: str | None = Query(None),
     allow_jsonl: bool = Query(False),
+    validate: bool = Query(True, description="是否启用文件校验"),
     current_user: User = Depends(get_admin_user),
 ):
-    """上传文件"""
+    """上传文件（支持完善的文件校验）"""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No selected file")
 
@@ -585,10 +597,7 @@ async def upload_file(
     if ext == ".jsonl":
         if allow_jsonl is not True or db_id is not None:
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
-    elif not is_supported_file_extension(file.filename):
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
 
-    # 根据db_id获取上传路径，如果db_id为None则使用默认路径
     if db_id:
         upload_dir = knowledge_base.get_db_upload_path(db_id)
     else:
@@ -611,18 +620,88 @@ async def upload_file(
     with open(file_path, "wb") as buffer:
         buffer.write(file_bytes)
 
+    if validate:
+        validator = FileValidator()
+        is_valid, error, type_info = validator.validate_file(file_path)
+        
+        if not is_valid:
+            os.remove(file_path)
+            
+            if isinstance(error, FileTooLargeError):
+                raise HTTPException(
+                    status_code=413,
+                    detail={
+                        "error_code": error.error_code,
+                        "message": error.message,
+                        "file_size": error.file_size,
+                        "max_size": error.max_size,
+                    }
+                )
+            elif isinstance(error, UnsupportedFileTypeError):
+                raise HTTPException(
+                    status_code=415,
+                    detail={
+                        "error_code": error.error_code,
+                        "message": error.message,
+                        "file_ext": error.file_ext,
+                        "supported_types": error.supported_types,
+                    }
+                )
+            elif isinstance(error, FileCorruptedError):
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error_code": error.error_code,
+                        "message": error.message,
+                    }
+                )
+            elif isinstance(error, FileSecurityError):
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "error_code": error.error_code,
+                        "message": error.message,
+                    }
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error_code": error.error_code if error else "UNKNOWN_ERROR",
+                        "message": error.message if error else "文件校验失败",
+                    }
+                )
+
+    type_info_dict = None
+    if type_info:
+        type_info_dict = {
+            "category": type_info.category,
+            "strategy": type_info.strategy.value,
+            "mime_type": type_info.mime_type,
+            "description": type_info.description,
+        }
+
     return {
         "message": "File successfully uploaded",
         "file_path": file_path,
         "db_id": db_id,
         "content_hash": content_hash,
+        "file_type": type_info_dict,
     }
 
 
 @knowledge.get("/files/supported-types")
 async def get_supported_file_types(current_user: User = Depends(get_admin_user)):
-    """获取当前支持的文件类型"""
-    return {"message": "success", "file_types": sorted(SUPPORTED_FILE_EXTENSIONS)}
+    """获取当前支持的文件类型（按类别分组）"""
+    categories = get_file_types_by_category()
+    all_types = get_all_supported_extensions()
+    
+    return {
+        "message": "success",
+        "file_types": sorted(all_types),
+        "categories": categories,
+        "total_count": len(all_types),
+    }
 
 
 @knowledge.post("/files/markdown")
@@ -694,3 +773,211 @@ async def get_all_embedding_models_status(current_user: User = Depends(get_admin
     except Exception as e:
         logger.error(f"获取所有embedding模型状态失败: {e}, {traceback.format_exc()}")
         return {"message": f"获取所有embedding模型状态失败: {e}", "status": {"models": {}, "total": 0, "available": 0}}
+
+
+# =============================================================================
+# === 多模态文件处理分组 ===
+# =============================================================================
+
+
+@knowledge.post("/databases/{db_id}/multimodal")
+async def add_multimodal_content(
+    db_id: str,
+    items: list[str] = Body(default=[]),
+    params: dict = Body(default={}),
+    current_user: User = Depends(get_admin_user),
+):
+    """添加多模态内容到知识库
+    
+    支持两种模式：
+    - single: 单个文件处理，items为文件路径列表
+    - batch: 批量JSON处理，params.items为JSON数据列表
+    """
+    from src.knowledge.utils.multimodal_processor import MultimodalProcessor
+
+    mode = params.get("mode", "single")
+    batch_items = params.get("items", [])
+    
+    logger.debug(f"Add multimodal content for db_id {db_id}: mode={mode}, items_count={len(items)}, batch_items_count={len(batch_items)}")
+
+    async def run_multimodal_ingest(context: TaskContext):
+        await context.set_message("任务初始化")
+        await context.set_progress(5.0, "准备处理多模态文件")
+
+        processed_items = []
+
+        try:
+            processor = MultimodalProcessor(config.save_dir)
+
+            if mode == "batch" and batch_items:
+                total = len(batch_items)
+                
+                for idx, item in enumerate(batch_items, 1):
+                    await context.raise_if_cancelled()
+
+                    progress = 5.0 + (idx / total) * 90.0
+                    await context.set_progress(progress, f"正在处理第 {idx}/{total} 个URL")
+
+                    try:
+                        result = await processor._process_from_url(
+                            item.get("url", ""),
+                            item.get("description", ""),
+                            params=params,
+                        )
+                        processed_items.append(result)
+                    except Exception as e:
+                        logger.error(f"处理多模态URL失败 {item.get('url')}: {e}")
+                        processed_items.append({
+                            "status": "failed",
+                            "error": str(e),
+                            "url": item.get("url", ""),
+                        })
+            else:
+                total = len(items)
+                
+                for idx, item in enumerate(items, 1):
+                    await context.raise_if_cancelled()
+
+                    progress = 5.0 + (idx / total) * 90.0
+                    await context.set_progress(progress, f"正在处理第 {idx}/{total} 个文件")
+
+                    try:
+                        result = await processor.process_media_file(
+                            item,
+                            params=params,
+                        )
+                        processed_items.append(result)
+                    except Exception as e:
+                        logger.error(f"处理多模态文件失败 {item}: {e}")
+                        processed_items.append({
+                            "status": "failed",
+                            "error": str(e),
+                            "file_path": item,
+                        })
+
+        except asyncio.CancelledError:
+            await context.set_progress(100.0, "任务已取消")
+            raise
+
+        failed_count = len([p for p in processed_items if p.get("status") == "failed"])
+        summary = {
+            "db_id": db_id,
+            "mode": mode,
+            "submitted": len(processed_items),
+            "failed": failed_count,
+        }
+        message = f"多模态文件处理完成，失败 {failed_count} 个" if failed_count else "多模态文件处理完成"
+        await context.set_result(summary | {"items": processed_items})
+        await context.set_progress(100.0, message)
+        return summary | {"items": processed_items}
+
+    try:
+        task = await tasker.enqueue(
+            name=f"多模态文件处理({db_id})",
+            task_type="multimodal_ingest",
+            payload={
+                "db_id": db_id,
+                "items": items,
+                "params": params,
+                "mode": mode,
+            },
+            coroutine=run_multimodal_ingest,
+        )
+        return {
+            "message": "任务已提交，请在任务中心查看进度",
+            "status": "queued",
+            "task_id": task.id,
+        }
+    except Exception as e:
+        logger.error(f"Failed to enqueue multimodal task: {e}, {traceback.format_exc()}")
+        return {"message": f"Failed to enqueue task: {e}", "status": "failed"}
+
+
+@knowledge.post("/databases/{db_id}/multimodal/{media_id}/text")
+async def update_media_associated_text(
+    db_id: str,
+    media_id: str,
+    text_content: str = Body(...),
+    text_type: str = Body("description"),
+    tags: list[str] = Body([]),
+    current_user: User = Depends(get_admin_user),
+):
+    """更新媒体文件的关联文本"""
+    from src.knowledge.utils.multimodal_processor import MultimodalProcessor
+
+    try:
+        processor = MultimodalProcessor(config.save_dir)
+        success = await processor.update_associated_text(media_id, text_content, text_type, tags)
+        
+        if success:
+            return {"message": "关联文本更新成功", "status": "success"}
+        else:
+            raise HTTPException(status_code=404, detail=f"Media file not found: {media_id}")
+            
+    except Exception as e:
+        logger.error(f"更新关联文本失败 {e}, {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"更新关联文本失败: {e}")
+
+
+@knowledge.get("/files/validate")
+async def validate_file_endpoint(
+    file_path: str = Query(..., description="文件路径"),
+    current_user: User = Depends(get_admin_user),
+):
+    """校验文件（用于前端预校验）"""
+    from src.knowledge.utils.file_validator import validate_upload_file
+    
+    try:
+        is_valid, error, type_info = validate_upload_file(file_path)
+        
+        result = {
+            "is_valid": is_valid,
+            "file_path": file_path,
+        }
+        
+        if error:
+            result["error"] = {
+                "error_code": error.error_code,
+                "message": error.message,
+            }
+        
+        if type_info:
+            result["file_type"] = {
+                "category": type_info.category,
+                "strategy": type_info.strategy.value,
+                "mime_type": type_info.mime_type,
+                "description": type_info.description,
+            }
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"文件校验失败 {e}, {traceback.format_exc()}")
+        return {
+            "is_valid": False,
+            "file_path": file_path,
+            "error": {
+                "error_code": "VALIDATION_ERROR",
+                "message": str(e),
+            },
+        }
+
+
+@knowledge.get("/files/size-limits")
+async def get_file_size_limits(current_user: User = Depends(get_admin_user)):
+    """获取文件大小限制配置"""
+    from src.knowledge.utils.file_validator import DEFAULT_SIZE_LIMITS
+    
+    def format_size(size: int) -> str:
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size} {unit}"
+            size /= 1024
+        return f"{size:.2f} TB"
+    
+    limits = {k: {"bytes": v, "formatted": format_size(v)} for k, v in DEFAULT_SIZE_LIMITS.items()}
+    
+    return {
+        "message": "success",
+        "size_limits": limits,
+    }
