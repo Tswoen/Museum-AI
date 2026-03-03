@@ -228,3 +228,40 @@ export const embeddingApi = {
     return apiAdminGet('/api/knowledge/embedding-models/status')
   }
 }
+
+// =============================================================================
+// === 多模态文件处理分组 ===
+// =============================================================================
+
+export const multimodalApi = {
+  /**
+   * 添加多模态内容到知识库
+   * @param {string} dbId - 知识库ID
+   * @param {Array} items - 文件路径列表（单个文件模式）
+   * @param {Object} params - 处理参数，包含mode、items等
+   * @returns {Promise} - 添加结果
+   */
+  addMultimodalContent: async (dbId, items = [], params = {}) => {
+    return apiAdminPost(`/api/knowledge/databases/${dbId}/multimodal`, {
+      items,
+      params
+    })
+  },
+
+  /**
+   * 更新媒体文件的关联文本
+   * @param {string} dbId - 知识库ID
+   * @param {string} mediaId - 媒体文件ID
+   * @param {string} textContent - 文本内容
+   * @param {string} textType - 文本类型
+   * @param {Array} tags - 标签列表
+   * @returns {Promise} - 更新结果
+   */
+  updateMediaAssociatedText: async (dbId, mediaId, textContent, textType = 'description', tags = []) => {
+    return apiAdminPost(`/api/knowledge/databases/${dbId}/multimodal/${mediaId}/text`, {
+      text_content: textContent,
+      text_type: textType,
+      tags
+    })
+  }
+}

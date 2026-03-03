@@ -32,6 +32,8 @@ class MediaMetadata:
     context_text: Optional[str] = None
     custom_metadata: dict = field(default_factory=dict)
     created_at: str = field(default_factory=utc_isoformat)
+    original_filename: Optional[str] = None
+    source_url: Optional[str] = None
 
 
 @dataclass
@@ -85,6 +87,8 @@ class MultimodalProcessor:
         
         category = type_info.category
         
+        original_filename = self._extract_original_filename(file_path, params)
+        
         processor_map = {
             "image": self._process_image,
             "video": self._process_video,
@@ -95,7 +99,10 @@ class MultimodalProcessor:
         if not processor:
             raise ValueError(f"No processor for category: {category}")
         
-        return await processor(file_path, params, associated_text, tags)
+        result = await processor(file_path, params, associated_text, tags, original_filename)
+        
+        result["original_filename"] = original_filename
+        return result
 
     async def process_batch_from_json(
         self,
@@ -176,6 +183,8 @@ class MultimodalProcessor:
             
             category = type_info.category
             
+            original_filename = self._extract_filename_from_url(url)
+            
             processor_map = {
                 "image": self._process_image,
                 "video": self._process_video,
@@ -187,10 +196,11 @@ class MultimodalProcessor:
                 os.unlink(tmp_path)
                 raise ValueError(f"No processor for category: {category}")
             
-            result = await processor(Path(tmp_path), params, description, [])
+            result = await processor(Path(tmp_path), params, description, [], original_filename)
             
             result["source_url"] = url
             result["is_from_url"] = True
+            result["original_filename"] = original_filename
             
             try:
                 os.unlink(tmp_path)
@@ -209,6 +219,7 @@ class MultimodalProcessor:
         params: dict,
         associated_text: Optional[str] = None,
         tags: Optional[list[str]] = None,
+        original_filename: Optional[str] = None,
     ) -> dict:
         """处理图片文件"""
         try:
@@ -240,6 +251,7 @@ class MultimodalProcessor:
                 description=description,
                 tags=tags or [],
                 context_text=associated_text,
+                original_filename=original_filename,
             )
             
             await self._save_media_metadata(metadata)
@@ -270,6 +282,7 @@ class MultimodalProcessor:
         params: dict,
         associated_text: Optional[str] = None,
         tags: Optional[list[str]] = None,
+        original_filename: Optional[str] = None,
     ) -> dict:
         """处理视频文件"""
         try:
@@ -304,6 +317,7 @@ class MultimodalProcessor:
                 description=description,
                 tags=tags or [],
                 context_text=associated_text,
+                original_filename=original_filename,
                 custom_metadata={
                     "duration": video_info.get("duration"),
                     "fps": video_info.get("fps"),
@@ -340,6 +354,7 @@ class MultimodalProcessor:
         params: dict,
         associated_text: Optional[str] = None,
         tags: Optional[list[str]] = None,
+        original_filename: Optional[str] = None,
     ) -> dict:
         """处理音频文件"""
         try:
@@ -361,6 +376,7 @@ class MultimodalProcessor:
                 description=description,
                 tags=tags or [],
                 context_text=associated_text,
+                original_filename=original_filename,
                 custom_metadata={
                     "duration": audio_info.get("duration"),
                     "sample_rate": audio_info.get("sample_rate"),
@@ -578,6 +594,49 @@ class MultimodalProcessor:
                 return ext
         
         return '.bin'
+
+    def _extract_original_filename(self, file_path: Path, params: Optional[dict] = None) -> str:
+        """
+        从文件路径或参数中提取原始文件名
+        
+        Args:
+            file_path: 文件路径
+            params: 处理参数
+            
+        Returns:
+            原始文件名
+        """
+        if params and "original_filename" in params:
+            return params["original_filename"]
+        
+        return file_path.name
+
+    def _extract_filename_from_url(self, url: str) -> str:
+        """
+        从URL中提取原始文件名
+        
+        Args:
+            url: 文件URL
+            
+        Returns:
+            原始文件名
+        """
+        from urllib.parse import urlparse, unquote
+        
+        try:
+            parsed = urlparse(url)
+            path = unquote(parsed.path)
+            
+            filename = os.path.basename(path)
+            
+            if filename:
+                return filename
+            
+            return f"file_{hashstr(url, 8)}"
+            
+        except Exception as e:
+            logger.warning(f"Failed to extract filename from URL {url}: {e}")
+            return f"file_{hashstr(url, 8)}"
 
     async def _save_media_metadata(self, metadata: MediaMetadata) -> None:
         """保存媒体元数据"""

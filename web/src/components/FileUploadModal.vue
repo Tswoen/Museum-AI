@@ -736,8 +736,13 @@ const chunkData = async () => {
             ...chunkParams.value,
             mode: 'single',
           };
-          await multimodalApi.addMultimodalContent(databaseId.value, validFiles, multimodalParams);
-          success = true;
+          const result = await multimodalApi.addMultimodalContent(databaseId.value, validFiles, multimodalParams);
+          if (result.status === 'queued') {
+            message.success('多模态文件处理任务已提交，请在任务中心查看进度');
+            success = true;
+          } else {
+            throw new Error(result.message || '任务提交失败');
+          }
         } catch (error) {
           console.error('多模态文件处理失败:', error);
           addError('error', `多模态文件处理失败: ${error.message || '未知错误'}`);
@@ -746,7 +751,10 @@ const chunkData = async () => {
       } else {
         try {
           const jsonFile = validFiles[0];
-          const jsonContent = await fetch(jsonFile).then(r => r.text());
+          const jsonFileName = fileList.value.find(f => f.response?.file_path === jsonFile)?.name || 'batch_upload.json';
+          
+          const response = await fetch(jsonFile);
+          const jsonContent = await response.text();
           const jsonData = JSON.parse(jsonContent);
           
           const validation = validateMultimodalJsonFormat(jsonData);
@@ -760,12 +768,25 @@ const chunkData = async () => {
             ...chunkParams.value,
             mode: 'batch',
             items: jsonData,
+            json_file_path: jsonFileName,
           };
-          await multimodalApi.addMultimodalContent(databaseId.value, [], multimodalParams);
-          success = true;
+          
+          const result = await multimodalApi.addMultimodalContent(databaseId.value, [], multimodalParams);
+          if (result.status === 'queued') {
+            message.success(`批量多模态处理任务已提交，共 ${jsonData.length} 个文件，请在任务中心查看进度`);
+            success = true;
+          } else {
+            throw new Error(result.message || '任务提交失败');
+          }
         } catch (error) {
           console.error('批量多模态处理失败:', error);
-          addError('error', `批量处理失败: ${error.message || '未知错误'}`);
+          let errorMsg = '批量处理失败';
+          if (error.message) {
+            errorMsg = `批量处理失败: ${error.message}`;
+          } else if (typeof error === 'string') {
+            errorMsg = `批量处理失败: ${error}`;
+          }
+          addError('error', errorMsg);
           return;
         }
       }

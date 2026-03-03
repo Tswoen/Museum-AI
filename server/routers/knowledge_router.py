@@ -783,22 +783,46 @@ async def get_all_embedding_models_status(current_user: User = Depends(get_admin
 @knowledge.post("/databases/{db_id}/multimodal")
 async def add_multimodal_content(
     db_id: str,
-    items: list[str] = Body(default=[]),
+    item: str = Body(default=""),
     params: dict = Body(default={}),
-    current_user: User = Depends(get_admin_user),
 ):
     """添加多模态内容到知识库
     
     支持两种模式：
-    - single: 单个文件处理，items为文件路径列表
-    - batch: 批量JSON处理，params.items为JSON数据列表
+    - single: 单个文件处理，items为文件路径
+    - batch: 批量JSON处理，item为JSON文件路径
+
+    params：
+    - mode: 处理模式，single或batch
+    - description: 单模式下的文件描述，批量模式下为空
+    
+    单个文件处理流程：
+    1. 前端上传文件到 /files/upload 接口
+    2. 文件经过格式验证、大小限制检查、安全性校验
+    3. 验证通过后文件存储至指定目录，返回唯一访问地址
+    4. 前端点击"添加到知识库"，将文件地址发送到此接口
+    5. 后端从文件URL中解析出原始文件名
+    6. 知识块(chunk)追溯来源时能精确定位到该解析得到的原始文件
+    
+    批量JSON处理流程：
+    1. 前端上传JSON文件，格式为：[{"url": "文件URL", "description": "描述信息"}, ...]
+    2. 后端解析JSON数组，逐个处理每个多模态文件
+    3. 所有知识块(chunk)追溯来源时统一指向该JSON文件
     """
+    content_type = params.get("content_type", "file")
+    
+    # 安全检查：验证文件路径
+    if content_type == "file":
+        from src.knowledge.utils.kb_utils import validate_file_path
+        try:
+            validate_file_path(item, db_id)
+        except ValueError as e:
+            raise HTTPException(status_code=403, detail=str(e))
+
     from src.knowledge.utils.multimodal_processor import MultimodalProcessor
 
-    mode = params.get("mode", "single")
-    batch_items = params.get("items", [])
-    
-    logger.debug(f"Add multimodal content for db_id {db_id}: mode={mode}, items_count={len(items)}, batch_items_count={len(batch_items)}")
+    mode = params.get("mode", "single")    
+    logger.debug(f"Add multimodal content for db_id {db_id}: mode={mode}, item={item}")
 
     async def run_multimodal_ingest(context: TaskContext):
         await context.set_message("任务初始化")
@@ -809,51 +833,18 @@ async def add_multimodal_content(
         try:
             processor = MultimodalProcessor(config.save_dir)
 
-            if mode == "batch" and batch_items:
-                total = len(batch_items)
-                
-                for idx, item in enumerate(batch_items, 1):
-                    await context.raise_if_cancelled()
+            total = 1
+            await context.raise_if_cancelled()
+            progress = 5.0 + (idx / total) * 90.0
+            await context.set_progress(progress, f"正在处理第 {idx}/{total} 个多模态文件")
 
-                    progress = 5.0 + (idx / total) * 90.0
-                    await context.set_progress(progress, f"正在处理第 {idx}/{total} 个URL")
-
-                    try:
-                        result = await processor._process_from_url(
-                            item.get("url", ""),
-                            item.get("description", ""),
-                            params=params,
-                        )
-                        processed_items.append(result)
-                    except Exception as e:
-                        logger.error(f"处理多模态URL失败 {item.get('url')}: {e}")
-                        processed_items.append({
-                            "status": "failed",
-                            "error": str(e),
-                            "url": item.get("url", ""),
-                        })
+            file_path_obj = Path(item)
+            if mode == "batch":
+                # 处理JSON文件
+                result = await knowledge_base.add_multi_content_single(db_id,[item],params=params)
             else:
-                total = len(items)
-                
-                for idx, item in enumerate(items, 1):
-                    await context.raise_if_cancelled()
-
-                    progress = 5.0 + (idx / total) * 90.0
-                    await context.set_progress(progress, f"正在处理第 {idx}/{total} 个文件")
-
-                    try:
-                        result = await processor.process_media_file(
-                            item,
-                            params=params,
-                        )
-                        processed_items.append(result)
-                    except Exception as e:
-                        logger.error(f"处理多模态文件失败 {item}: {e}")
-                        processed_items.append({
-                            "status": "failed",
-                            "error": str(e),
-                            "file_path": item,
-                        })
+                result = await knowledge_base.add_multi_content_batch(db_id,[item],params=params)
+            processed_items.extend(result)
 
         except asyncio.CancelledError:
             await context.set_progress(100.0, "任务已取消")
@@ -877,7 +868,7 @@ async def add_multimodal_content(
             task_type="multimodal_ingest",
             payload={
                 "db_id": db_id,
-                "items": items,
+                "items": [item],
                 "params": params,
                 "mode": mode,
             },
