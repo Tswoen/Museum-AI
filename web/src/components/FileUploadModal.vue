@@ -35,7 +35,7 @@
         </div>
       </div>
 
-      <div class="processing-strategy" v-if="uploadMode === 'file'">
+      <div class="processing-strategy" v-if="uploadMode === 'file' && isMultimodalSupported">
         <a-form layout="horizontal">
           <a-form-item label="处理策略" name="processing_strategy">
             <a-radio-group v-model:value="processingStrategy" button-style="solid">
@@ -82,37 +82,7 @@
         </a-form>
       </div>
 
-      <div class="qa-split-config" v-if="isQaSplitSupported && processingStrategy === 'text'">
-        <a-form layout="horizontal">
-          <a-form-item label="QA分割模式" name="use_qa_split">
-            <div class="toggle-controls">
-              <a-switch
-                v-model:checked="chunkParams.use_qa_split"
-                style="margin-right: 12px;"
-              />
-              <span class="param-description">
-                {{ chunkParams.use_qa_split ? '启用QA分割（忽略chunk大小设置）' : '使用普通分割模式' }}
-              </span>
-            </div>
-          </a-form-item>
-          <a-form-item
-            v-if="chunkParams.use_qa_split"
-            label="QA分隔符"
-            name="qa_separator"
-          >
-            <a-input
-              v-model:value="chunkParams.qa_separator"
-              placeholder="输入QA分隔符"
-              style="width: 200px; margin-right: 12px;"
-            />
-            <span class="param-description">
-              用于分割不同QA对的分隔符，默认为3个换行符
-            </span>
-          </a-form-item>
-        </a-form>
-      </div>
-
-      <div class="multimodal-mode-config" v-if="processingStrategy === 'multimodal' && uploadMode === 'file'">
+      <div class="multimodal-mode-config" v-if="processingStrategy === 'multimodal' && uploadMode === 'file' && isMultimodalSupported">
         <a-form layout="horizontal">
           <a-form-item label="处理模式" name="multimodal_mode">
             <a-radio-group v-model:value="multimodalMode" button-style="solid">
@@ -151,7 +121,21 @@
         </a-upload-dragger>
       </div>
 
-      <div class="url-input" v-else>
+      <div class="content-description" v-if="processingStrategy === 'multimodal' && multimodalMode === 'single' && uploadMode === 'file' && isMultimodalSupported">
+        <a-form layout="vertical">
+          <a-form-item label="附加说明" name="content_description">
+            <a-textarea
+              v-model:value="contentDescription"
+              placeholder="请输入关于该多模态文件的附加信息，当检索到此文件时，附加信息会一并展示。"
+              :rows="4"
+              show-count
+              :disabled="chunkLoading"
+            />
+          </a-form-item>
+        </a-form>
+      </div>
+
+      <div class="url-input" v-if="uploadMode === 'url'">
         <a-form layout="vertical">
           <a-form-item label="网页链接 (每行一个URL)">
             <a-textarea
@@ -205,14 +189,6 @@
           <a-input-number v-model:value="tempChunkParams.chunk_overlap" :min="0" :max="1000" style="width: 100%;" />
           <p class="param-description">相邻文本片段间的重叠字符数</p>
         </a-form-item>
-        <a-form-item v-if="isQaSplitSupported" label="QA分割模式" name="use_qa_split">
-          <a-switch v-model:checked="tempChunkParams.use_qa_split" />
-          <p class="param-description">启用后将按QA对分割，忽略上述chunk大小设置</p>
-        </a-form-item>
-        <a-form-item v-if="tempChunkParams.use_qa_split && isQaSplitSupported" label="QA分隔符" name="qa_separator">
-          <a-input v-model:value="tempChunkParams.qa_separator" placeholder="输入QA分隔符" style="width: 100%;" />
-          <p class="param-description">用于分割不同QA对的分隔符</p>
-        </a-form-item>
       </a-form>
     </div>
   </a-modal>
@@ -223,6 +199,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { message, Upload } from 'ant-design-vue';
 import { useUserStore } from '@/stores/user';
 import { useDatabaseStore } from '@/stores/database';
+import { useTaskerStore } from '@/stores/tasker';
 import { ocrApi } from '@/apis/system_api';
 import { fileApi, multimodalApi } from '@/apis/knowledge_api';
 import {
@@ -243,6 +220,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible']);
 
 const store = useDatabaseStore();
+const taskerStore = useTaskerStore();
 
 const TEXT_EMBED_SUPPORTED_TYPES = [
   '.txt', '.md', '.doc', '.docx', '.pdf', '.html', '.htm', '.json', '.csv', '.xls', '.xlsx',
@@ -311,6 +289,8 @@ const uploadErrors = ref([]);
 
 const fileList = ref([]);
 const urlList = ref('');
+const contentDescription = ref('');
+const jsonFileContent = ref(null);
 
 const ocrHealthStatus = ref({
   rapid_ocr: { status: 'unknown', message: '' },
@@ -324,8 +304,6 @@ const chunkParams = ref({
   chunk_size: 1000,
   chunk_overlap: 200,
   enable_ocr: 'disable',
-  use_qa_split: false,
-  qa_separator: '\n\n\n',
 });
 
 const chunkConfigModalVisible = ref(false);
@@ -333,13 +311,6 @@ const chunkConfigModalVisible = ref(false);
 const tempChunkParams = ref({
   chunk_size: 1000,
   chunk_overlap: 200,
-  use_qa_split: false,
-  qa_separator: '\n\n\n',
-});
-
-const isQaSplitSupported = computed(() => {
-  const type = kbType.value?.toLowerCase();
-  return type === 'chroma' || type === 'milvus';
 });
 
 const isGraphBased = computed(() => {
@@ -347,12 +318,17 @@ const isGraphBased = computed(() => {
   return type === 'lightrag';
 });
 
+const isMultimodalSupported = computed(() => {
+  const type = kbType.value?.toLowerCase();
+  return type === 'chroma' || type === 'milvus';
+});
+
 const uploadAction = computed(() => {
   return `/api/knowledge/files/upload?db_id=${databaseId.value}&validate=true`;
 });
 
 const currentAcceptedFileTypes = computed(() => {
-  if (processingStrategy.value === 'text') {
+  if (!isMultimodalSupported.value || processingStrategy.value === 'text') {
     return TEXT_EMBED_SUPPORTED_TYPES.join(',');
   } else if (processingStrategy.value === 'multimodal') {
     if (multimodalMode.value === 'single') {
@@ -370,7 +346,7 @@ const currentAcceptedFileTypes = computed(() => {
 });
 
 const currentUploadHint = computed(() => {
-  if (processingStrategy.value === 'text') {
+  if (!isMultimodalSupported.value || processingStrategy.value === 'text') {
     return TEXT_EMBED_SUPPORTED_TYPES.join(', ');
   } else if (processingStrategy.value === 'multimodal') {
     if (multimodalMode.value === 'single') {
@@ -378,14 +354,14 @@ const currentUploadHint = computed(() => {
              '; 视频: ' + MULTIMODAL_SUPPORTED_TYPES.video.slice(0, 3).join(', ') + '...' +
              '; 音频: ' + MULTIMODAL_SUPPORTED_TYPES.audio.slice(0, 3).join(', ') + '...';
     } else {
-      return 'JSON文件（格式: [{"url": "文件URL", "description": "描述信息"}, ...]）';
+      return 'JSON文件（格式: [{"url": "文件URL", "info": "附加信息"}, ...]）';
     }
   }
   return supportedFileTypes.value.join(', ');
 });
 
 const currentSizeLimitHint = computed(() => {
-  if (processingStrategy.value === 'text') {
+  if (!isMultimodalSupported.value || processingStrategy.value === 'text') {
     return '文件大小限制：文本/图片 100MB';
   } else if (processingStrategy.value === 'multimodal') {
     return '文件大小限制：图片 50MB / 视频 500MB / 音频 100MB';
@@ -526,8 +502,8 @@ const validateMultimodalJsonFormat = (jsonData) => {
     if (!item.url || typeof item.url !== 'string') {
       return { valid: false, error: `第 ${i + 1} 项缺少有效的 "url" 字段` };
     }
-    if (!item.description || typeof item.description !== 'string') {
-      return { valid: false, error: `第 ${i + 1} 项缺少有效的 "description" 字段` };
+    if (!item.info || typeof item.info !== 'string') {
+      return { valid: false, error: `第 ${i + 1} 项缺少有效的 "info" 字段` };
     }
     if (!item.url.startsWith('http://') && !item.url.startsWith('https://')) {
       return { valid: false, error: `第 ${i + 1} 项的 "url" 必须以 http:// 或 https:// 开头` };
@@ -537,10 +513,10 @@ const validateMultimodalJsonFormat = (jsonData) => {
   return { valid: true };
 };
 
-const beforeUpload = (file) => {
+const beforeUpload = async (file) => {
   const ext = '.' + file.name.split('.').pop().toLowerCase();
   
-  if (processingStrategy.value === 'text') {
+  if (!isMultimodalSupported.value || processingStrategy.value === 'text') {
     if (!TEXT_EMBED_SUPPORTED_TYPES.includes(ext)) {
       const errorMsg = `文本嵌入不支持该文件类型: ${file.name}。支持的类型: ${TEXT_EMBED_SUPPORTED_TYPES.slice(0, 5).join(', ')}...`;
       message.error(errorMsg);
@@ -567,6 +543,22 @@ const beforeUpload = (file) => {
         addError('error', errorMsg);
         return Upload.LIST_IGNORE;
       }
+      try {
+        const content = await file.text();
+        const jsonData = JSON.parse(content);
+        const validation = validateMultimodalJsonFormat(jsonData);
+        if (!validation.valid) {
+          message.error(validation.error);
+          addError('error', validation.error);
+          return Upload.LIST_IGNORE;
+        }
+        jsonFileContent.value = jsonData;
+      } catch (error) {
+        const errorMsg = `JSON文件解析失败: ${error.message}`;
+        message.error(errorMsg);
+        addError('error', errorMsg);
+        return Upload.LIST_IGNORE;
+      }
     }
   }
   
@@ -579,7 +571,7 @@ const beforeUpload = (file) => {
   };
   
   let maxSize = sizeLimits.default;
-  if (processingStrategy.value === 'text') {
+  if (!isMultimodalSupported.value || processingStrategy.value === 'text') {
     maxSize = sizeLimits.text;
   } else if (processingStrategy.value === 'multimodal') {
     if (multimodalMode.value === 'single') {
@@ -645,8 +637,6 @@ const showChunkConfigModal = () => {
   tempChunkParams.value = {
     chunk_size: chunkParams.value.chunk_size,
     chunk_overlap: chunkParams.value.chunk_overlap,
-    use_qa_split: isQaSplitSupported.value ? chunkParams.value.use_qa_split : false,
-    qa_separator: chunkParams.value.qa_separator,
   };
   chunkConfigModalVisible.value = true;
 };
@@ -654,12 +644,6 @@ const showChunkConfigModal = () => {
 const handleChunkConfigSubmit = () => {
   chunkParams.value.chunk_size = tempChunkParams.value.chunk_size;
   chunkParams.value.chunk_overlap = tempChunkParams.value.chunk_overlap;
-  if (isQaSplitSupported.value) {
-    chunkParams.value.use_qa_split = tempChunkParams.value.use_qa_split;
-    chunkParams.value.qa_separator = tempChunkParams.value.qa_separator;
-  } else {
-    chunkParams.value.use_qa_split = false;
-  }
   chunkConfigModalVisible.value = false;
   message.success('分块参数配置已更新');
 };
@@ -698,15 +682,36 @@ const isSubmitDisabled = computed(() => {
 watch(processingStrategy, () => {
   fileList.value = [];
   uploadErrors.value = [];
+  contentDescription.value = '';
+  jsonFileContent.value = null;
 });
 
 watch(multimodalMode, () => {
+  fileList.value = [];
+  uploadErrors.value = [];
+  contentDescription.value = '';
+  jsonFileContent.value = null;
+});
+
+watch(kbType, (newType) => {
+  const type = newType?.toLowerCase();
+  if (type === 'lightrag' && processingStrategy.value === 'multimodal') {
+    processingStrategy.value = 'text';
+    message.info('LightRAG知识库不支持多模态处理，已自动切换为文本嵌入模式');
+  }
   fileList.value = [];
   uploadErrors.value = [];
 });
 
 const chunkData = async () => {
   if (processingStrategy.value === 'text' && !validateOcrService()) {
+    return;
+  }
+
+  if (processingStrategy.value === 'multimodal' && !isMultimodalSupported.value) {
+    const errorMsg = '当前知识库类型不支持多模态处理，请使用文本嵌入模式';
+    message.error(errorMsg);
+    addError('error', errorMsg);
     return;
   }
 
@@ -733,15 +738,35 @@ const chunkData = async () => {
       if (multimodalMode.value === 'single') {
         try {
           const multimodalParams = {
-            ...chunkParams.value,
             mode: 'single',
+            info: contentDescription.value.trim(),
           };
-          const result = await multimodalApi.addMultimodalContent(databaseId.value, validFiles, multimodalParams);
-          if (result.status === 'queued') {
-            message.success('多模态文件处理任务已提交，请在任务中心查看进度');
+          const results = await multimodalApi.addMultimodalContentBatch(databaseId.value, validFiles, multimodalParams);
+          const failedCount = results.filter(r => r.status === 'failed').length;
+          const successCount = results.length - failedCount;
+          
+          results.forEach(result => {
+            if (result.task_id) {
+              taskerStore.registerQueuedTask({
+                task_id: result.task_id,
+                name: `多模态文件处理 (${databaseId.value || ''})`,
+                task_type: 'multimodal_ingest',
+                message: result.message || '任务已排队',
+                payload: {
+                  db_id: databaseId.value,
+                  item: result.item,
+                  mode: 'single',
+                }
+              });
+            }
+          });
+          
+          if (failedCount === 0) {
+            message.success(`多模态文件处理任务已提交，共 ${successCount} 个文件，请在任务中心查看进度`);
             success = true;
           } else {
-            throw new Error(result.message || '任务提交失败');
+            message.warning(`多模态文件处理任务已提交，成功 ${successCount} 个，失败 ${failedCount} 个，请在任务中心查看进度`);
+            success = true;
           }
         } catch (error) {
           console.error('多模态文件处理失败:', error);
@@ -753,27 +778,35 @@ const chunkData = async () => {
           const jsonFile = validFiles[0];
           const jsonFileName = fileList.value.find(f => f.response?.file_path === jsonFile)?.name || 'batch_upload.json';
           
-          const response = await fetch(jsonFile);
-          const jsonContent = await response.text();
-          const jsonData = JSON.parse(jsonContent);
-          
-          const validation = validateMultimodalJsonFormat(jsonData);
-          if (!validation.valid) {
-            message.error(validation.error);
-            addError('error', validation.error);
+          if (!jsonFileContent.value) {
+            const errorMsg = 'JSON文件内容未找到，请重新上传文件';
+            message.error(errorMsg);
+            addError('error', errorMsg);
             return;
           }
           
           const multimodalParams = {
-            ...chunkParams.value,
             mode: 'batch',
-            items: jsonData,
+            items: jsonFileContent.value,
             json_file_path: jsonFileName,
           };
           
-          const result = await multimodalApi.addMultimodalContent(databaseId.value, [], multimodalParams);
+          const result = await multimodalApi.addMultimodalContent(databaseId.value, jsonFile, multimodalParams);
           if (result.status === 'queued') {
-            message.success(`批量多模态处理任务已提交，共 ${jsonData.length} 个文件，请在任务中心查看进度`);
+            if (result.task_id) {
+              taskerStore.registerQueuedTask({
+                task_id: result.task_id,
+                name: `批量多模态处理 (${databaseId.value || ''})`,
+                task_type: 'multimodal_ingest',
+                message: result.message || '任务已排队',
+                payload: {
+                  db_id: databaseId.value,
+                  count: jsonFileContent.value.length,
+                  mode: 'batch',
+                }
+              });
+            }
+            message.success(`批量多模态处理任务已提交，共 ${jsonFileContent.value.length} 个文件，请在任务中心查看进度`);
             success = true;
           } else {
             throw new Error(result.message || '任务提交失败');
@@ -811,6 +844,8 @@ const chunkData = async () => {
     emit('update:visible', false);
     fileList.value = [];
     urlList.value = '';
+    contentDescription.value = '';
+    jsonFileContent.value = null;
     uploadErrors.value = [];
   }
 };
@@ -866,8 +901,8 @@ const chunkData = async () => {
 
 .processing-strategy,
 .ocr-config,
-.qa-split-config,
-.multimodal-mode-config {
+.multimodal-mode-config,
+.content-description {
   margin-bottom: 20px;
   padding: 16px;
   background-color: var(--gray-50);

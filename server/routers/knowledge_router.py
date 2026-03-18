@@ -794,21 +794,18 @@ async def add_multimodal_content(
 
     params：
     - mode: 处理模式，single或batch
-    - description: 单模式下的文件描述，批量模式下为空
+    - info: 单模式下的文件的说明，批量模式下无
     
     单个文件处理流程：
     1. 前端上传文件到 /files/upload 接口
-    2. 文件经过格式验证、大小限制检查、安全性校验
+    2. 文件经过格式验证、大小限制检查
     3. 验证通过后文件存储至指定目录，返回唯一访问地址
     4. 前端点击"添加到知识库"，将文件地址发送到此接口
     5. 后端从文件URL中解析出原始文件名
     6. 知识块(chunk)追溯来源时能精确定位到该解析得到的原始文件
-    
-    批量JSON处理流程：
-    1. 前端上传JSON文件，格式为：[{"url": "文件URL", "description": "描述信息"}, ...]
-    2. 后端解析JSON数组，逐个处理每个多模态文件
-    3. 所有知识块(chunk)追溯来源时统一指向该JSON文件
     """
+    logger.debug(f"Add documents for db_id {db_id}: {item} {params=}")
+
     content_type = params.get("content_type", "file")
     
     # 安全检查：验证文件路径
@@ -831,19 +828,18 @@ async def add_multimodal_content(
         processed_items = []
 
         try:
-            processor = MultimodalProcessor(config.save_dir)
 
             total = 1
             await context.raise_if_cancelled()
-            progress = 5.0 + (idx / total) * 90.0
-            await context.set_progress(progress, f"正在处理第 {idx}/{total} 个多模态文件")
+            progress = 95.0
+            await context.set_progress(progress, f"正在处理第 1 个多模态文件")
 
             file_path_obj = Path(item)
-            if mode == "batch":
+            if mode == "single":
                 # 处理JSON文件
-                result = await knowledge_base.add_multi_content_single(db_id,[item],params=params)
+                result = await knowledge_base.add_multi_content_single(db_id,item,params=params)
             else:
-                result = await knowledge_base.add_multi_content_batch(db_id,[item],params=params)
+                result = await knowledge_base.add_multi_content_batch(db_id,item,params=params)
             processed_items.extend(result)
 
         except asyncio.CancelledError:

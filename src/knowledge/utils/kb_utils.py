@@ -255,7 +255,7 @@ def validate_img_embedding_file(file_path: str) -> bool:
     if not isinstance(json_content, list):
         return False
         
-    required_fields = {"name", "image_url", "detail_url", "description"}
+    required_fields = {"url", "info"}
     for i, artifact in enumerate(json_content):
         if not isinstance(artifact, dict):
             return False
@@ -265,19 +265,9 @@ def validate_img_embedding_file(file_path: str) -> bool:
             return False
             
             # 校验字段类型
-        if not isinstance(artifact["name"], str):
+        if not isinstance(artifact["url"], str):
             return False
-        if not isinstance(artifact["image_url"], str):
-            return False
-        if not isinstance(artifact["detail_url"], str):
-            return False
-        if not isinstance(artifact["description"], str):
-            return False
-            
-            # 校验URL格式
-        if artifact["image_url"] and not artifact["image_url"].startswith(("http://", "https://")):
-            return False
-        if artifact["detail_url"] and not artifact["detail_url"].startswith(("http://", "https://")):
+        if not isinstance(artifact["info"], str):
             return False
         
     return True

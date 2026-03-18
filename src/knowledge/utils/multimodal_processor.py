@@ -50,12 +50,8 @@ class AssociatedText:
 class MultimodalProcessor:
     """多模态文件处理器"""
 
-    def __init__(self, work_dir: str):
-        self.work_dir = work_dir
-        self.media_dir = os.path.join(work_dir, "media")
-        self.metadata_dir = os.path.join(work_dir, "media_metadata")
-        os.makedirs(self.media_dir, exist_ok=True)
-        os.makedirs(self.metadata_dir, exist_ok=True)
+    def __init__(self):
+        pass
 
     async def process_media_file(
         self,

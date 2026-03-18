@@ -237,15 +237,35 @@ export const multimodalApi = {
   /**
    * 添加多模态内容到知识库
    * @param {string} dbId - 知识库ID
-   * @param {Array} items - 文件路径列表（单个文件模式）
-   * @param {Object} params - 处理参数，包含mode、items等
+   * @param {string} item - 文件路径（单个文件）
+   * @param {Object} params - 处理参数，包含mode、info等
    * @returns {Promise} - 添加结果
    */
-  addMultimodalContent: async (dbId, items = [], params = {}) => {
+  addMultimodalContent: async (dbId, item = '', params = {}) => {
     return apiAdminPost(`/api/knowledge/databases/${dbId}/multimodal`, {
-      items,
+      item,
       params
     })
+  },
+
+  /**
+   * 批量添加多模态内容到知识库
+   * @param {string} dbId - 知识库ID
+   * @param {Array} items - 文件路径列表
+   * @param {Object} params - 处理参数
+   * @returns {Promise} - 添加结果
+   */
+  addMultimodalContentBatch: async (dbId, items = [], params = {}) => {
+    const results = [];
+    for (const item of items) {
+      try {
+        const result = await multimodalApi.addMultimodalContent(dbId, item, params);
+        results.push({ item, ...result });
+      } catch (error) {
+        results.push({ item, status: 'failed', message: error.message });
+      }
+    }
+    return results;
   },
 
   /**
