@@ -145,8 +145,7 @@ const mainList = [{
         <div
           class="nav-item task-center"
           :class="{ active: isDrawerOpen }"
-          @click="taskerStore.openDrawer()"
-          v-if="activeTaskCount > 0"
+          @click="taskerStore.toggleDrawer()"
         >
           <a-tooltip placement="right">
             <template #title>任务中心</template>

@@ -216,6 +216,16 @@ class KnowledgeBaseManager:
         kb_instance = self._get_kb_for_database(db_id)
         return await kb_instance.add_content(db_id, items, params or {})
 
+    async def add_multi_content_single(self, db_id: str, item: str, params: dict | None = None) -> list[dict]:
+        """添加多模态内容（单模态）"""
+        kb_instance = self._get_kb_for_database(db_id)
+        return await kb_instance.add_multi_content_single(db_id, item, params or {})
+
+    async def add_multi_content_batch(self, db_id: str, item: str, params: dict | None = None) -> list[dict]:
+        """添加多模态内容（批量）"""
+        kb_instance = self._get_kb_for_database(db_id)
+        return await kb_instance.add_multi_content_batch(db_id, item, params or {})
+    
     async def add_image_embeddings(self, db_id: str, items: list[str], params: dict | None = None) -> list[dict]:
         """添加图片嵌入"""
         kb_instance = self._get_kb_for_database(db_id)

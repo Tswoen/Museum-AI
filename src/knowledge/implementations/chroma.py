@@ -24,6 +24,7 @@ from src.knowledge.utils.kb_utils import (
 from src.knowledge.utils.image_embedding_utils import get_image_embedding, get_image_description, get_text_embedding
 from src.utils import logger
 from src.utils.datetime_utils import utc_isoformat
+import json
 
 chroma_client = chromadb.Client()
 collection = chroma_client.create_collection(name="my_collection")
@@ -171,6 +172,7 @@ class ChromaKB(KnowledgeBase):
                 self.collections[image_collection_name] = collection
                 return collection
             except Exception:
+                logger.info(f"Creating new image collection: {image_collection_name}")
                 # 创建新集合 - 使用自定义嵌入函数，固定维度为512
                 # 对于图片嵌入，我们不需要实际的嵌入函数，因为嵌入已经由CLIP模型生成
                 # 我们创建一个空的嵌入函数，但指定维度为512
@@ -178,10 +180,13 @@ class ChromaKB(KnowledgeBase):
                     def __init__(self):
                         pass
                     
-                    def __call__(self, texts):
-                        # 返回与文本数量相同的512维零向量
-                        # 实际嵌入会在外部生成
-                        return [[0.0] * 512 for _ in texts]
+                    # def __call__(self, texts):
+                    #     # 返回与文本数量相同的512维零向量
+                    #     # 实际嵌入会在外部生成
+                    #     return [[0.0] * 512 for _ in texts]
+
+                    def __call__(self, input):
+                        return [[0.0] * 512 for _ in input]
 
                 embed_function = ImageEmbeddingFunction()
 
@@ -212,12 +217,12 @@ class ChromaKB(KnowledgeBase):
         artifacts = json.loads(json_content)
         chunks = []
         for chunk_index, artifact in enumerate(artifacts):
-            image_url = artifact ["image_url"]
+            image_url = artifact ["url"]
             img_desc = get_image_description(image_url)
             desc_embedding = get_text_embedding(img_desc)
             image_embedding = get_image_embedding(image_url)
             img_chunk = {
-                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}\n 对应的文物图片的描述：{img_desc}",
+                "content": f"图片的URL：{artifact ['url']}\n 对应的图片的描述：{img_desc}\n 图片的相关信息：{artifact ['info']}",
                 "embeddings": image_embedding,
                 "id": f"{file_id}_chunk_{chunk_index}_img_chunk",
                 "file_id": file_id,
@@ -226,10 +231,8 @@ class ChromaKB(KnowledgeBase):
                 "source": filename,
                 "chunk_id": f"{file_id}_chunk_{chunk_index}",
                 "metadata": {
-                    "description": artifact ["description"],
-                    "name": artifact ["name"],
-                    "image_url": artifact ["image_url"],
-                    "detail_url": artifact ["detail_url"], 
+                    "description": img_desc,
+                    "url": artifact ["url"],
                     "full_doc_id": file_id,
                     "source": filename,
                     "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
@@ -237,7 +240,7 @@ class ChromaKB(KnowledgeBase):
                 }
             }
             desc_chunk = {
-                "content": f"文物名称：{artifact ['name']}\n 对应的文物描述：{artifact ['description']}\n 对应的文物图片URL：{artifact ['image_url']}\n 对应的文物图片的描述：{img_desc}",
+                "content": f"图片的URL：{artifact ['url']}\n 对应的图片的描述：{img_desc}\n 图片的相关信息：{artifact ['info']}",
                 "embeddings": desc_embedding,
                 "id": f"{file_id}_chunk_{chunk_index}_desc_chunk",
                 "file_id": file_id,
@@ -246,10 +249,8 @@ class ChromaKB(KnowledgeBase):
                 "source": filename,
                 "chunk_id": f"{file_id}_chunk_{chunk_index}",
                 "metadata": {
-                    "description": artifact ["description"],
-                    "name": artifact ["name"],
-                    "image_url": artifact ["image_url"],
-                    "detail_url": artifact ["detail_url"], 
+                    "description": img_desc,
+                    "url": artifact ["url"],
                     "full_doc_id": file_id,
                     "source": filename,
                     "chunk_id": f"{file_id}_artifact_chunk_{chunk_index}",
@@ -341,24 +342,14 @@ class ChromaKB(KnowledgeBase):
             file_ext = file_path_obj.suffix.lower()
 
             try:
-                # 尝试图文嵌入
-                await self.add_image_embeddings(db_id, item, params)
-                # 根据文件扩展名处理内容
-                if file_ext == ".json":
-                    json_content = await process_file_to_json(item, params=params)
-                else :
-                    # 根据内容类型处理内容
-                    if content_type == "file":
-                        markdown_content = await process_file_to_markdown(item, params=params)
-                    else:  # URL    
-                        markdown_content = await process_url_to_markdown(item, params=params)
+                if content_type == "file":
+                    markdown_content = await process_file_to_markdown(item, params=params)
+                else:  # URL    
+                    markdown_content = await process_url_to_markdown(item, params=params)
                 
                 chunks = []
-                if file_ext == ".json":
-                    chunks = self.split_json_into_chunks(json_content, file_id, filename, params)
-                else:
-                    # 分割文本成块
-                    chunks = self._split_text_into_chunks(markdown_content, file_id, filename, params)
+                # 分割文本成块
+                chunks = self._split_text_into_chunks(markdown_content, file_id, filename, params)
                 logger.info(f"Split {filename} into {len(chunks)} chunks")
 
                 # 准备向量数据库插入的数据
@@ -405,7 +396,184 @@ class ChromaKB(KnowledgeBase):
 
         return processed_items_info
 
-    
+    async def add_multi_content_single(self, db_id: str, item: str, params: dict | None):
+        """添加单文件内容（文件/URL）"""
+        if db_id not in self.databases_meta:
+            raise ValueError(f"Database {db_id} not found")
+
+        collection = await self._get_image_chroma_collection(db_id)
+        if not collection:
+            raise ValueError(f"Failed to get ChromaDB collection for {db_id}")
+
+        content_type = params.get("content_type", "file") if params else "file"
+
+        # 准备文件元数据
+        metadata = prepare_item_metadata(item, content_type, db_id)
+        file_id = metadata["file_id"]
+        filename = metadata["filename"]
+
+        # 添加文件记录
+        file_record = metadata.copy()
+        logger.info(f"file_record: {file_record}")
+        self.files_meta[file_id] = file_record
+        self._save_metadata()
+
+        self._add_to_processing_queue(file_id)
+
+        file_path_obj = Path(item)
+        file_ext = file_path_obj.suffix.lower()
+
+        processed_items_info = []
+
+        try:
+            json_dic = {}
+            json_dic["url"] = item
+            json_dic["info"] = params["info"]
+            
+            json_content = json.dumps([json_dic], indent=4, ensure_ascii=False)
+          
+            chunks = []
+            chunks = self.parse_json_into_embedding_chunks(json_content, file_id, filename, params)
+
+            logger.info(f"Split {filename} into {len(chunks)} chunks")
+
+            # 准备向量数据库插入的数据
+            if chunks:
+                documents = [chunk["content"] for chunk in chunks]
+                embeddings = [chunk["embeddings"] for chunk in chunks]
+                metadatas = [chunk["metadata"] for chunk in chunks]
+                ids = [chunk["id"] for chunk in chunks]
+
+                # 插入到 ChromaDB - 分批处理以避免超出 OpenAI 批次大小限制
+                batch_size = 64  # OpenAI 的最大批次大小限制
+                total_batches = (len(chunks) + batch_size - 1) // batch_size
+
+                for i in range(0, len(chunks), batch_size):
+                    batch_documents = documents[i : i + batch_size]
+                    batch_embeddings = embeddings[i : i + batch_size]
+                    batch_metadatas = metadatas[i : i + batch_size]
+                    batch_ids = ids[i : i + batch_size]
+
+                    await asyncio.to_thread(
+                        collection.add,
+                        documents=batch_documents,
+                        embeddings=batch_embeddings,
+                        metadatas=batch_metadatas,
+                        ids=batch_ids,
+                    )
+                    batch_num = i // batch_size + 1
+                    logger.info(f"Processed batch {batch_num}/{total_batches} for {filename}")
+
+            logger.info(f"Inserted {content_type} {item} into Img_ChromaDB. Done.")
+
+            # 更新状态为完成
+            self.files_meta[file_id]["status"] = "done"
+            self._save_metadata()
+            file_record["status"] = "done"
+
+        except Exception as e:
+            logger.error(f"处理{content_type} {item} 失败: {e}, {traceback.format_exc()}")
+            self.files_meta[file_id]["status"] = "failed"
+            self._save_metadata()
+            file_record["status"] = "failed"
+        finally:
+            self._remove_from_processing_queue(file_id)
+        
+        processed_items_info.append(file_record)
+
+        return processed_items_info
+
+
+
+    async def add_multi_content_batch(self, db_id: str, item: str, params: dict | None):
+        """添加图片嵌入"""
+        # 校验格式
+        if not validate_img_embedding_file(item):
+            return
+        if db_id not in self.databases_meta:
+            raise ValueError(f"Database {db_id} not found")
+
+        collection = await self._get_image_chroma_collection(db_id)
+        if not collection:
+            raise ValueError(f"Failed to get ChromaDB collection for {db_id}")
+
+        content_type = params.get("content_type", "file") if params else "file"
+
+        # 准备文件元数据
+        metadata = prepare_item_metadata(item, content_type, db_id)
+        file_id = metadata["file_id"]
+        filename = metadata["filename"]
+
+        # 添加文件记录
+        file_record = metadata.copy()
+        self.files_meta[file_id] = file_record
+        self._save_metadata()
+
+        self._add_to_processing_queue(file_id)
+
+        file_path_obj = Path(item)
+        file_ext = file_path_obj.suffix.lower()
+        
+        processed_items_info = []
+        
+        try:
+            json_content = ""
+            # 根据文件扩展名处理内容
+            json_content = await process_file_to_json(item, params=params)
+          
+            chunks = []
+            chunks = self.parse_json_into_embedding_chunks(json_content, file_id, filename, params)
+
+            logger.info(f"Split {filename} into {len(chunks)} chunks")
+
+            # 准备向量数据库插入的数据
+            if chunks:
+                documents = [chunk["content"] for chunk in chunks]
+                embeddings = [chunk["embeddings"] for chunk in chunks]
+                metadatas = [chunk["metadata"] for chunk in chunks]
+                ids = [chunk["id"] for chunk in chunks]
+
+                # 插入到 ChromaDB - 分批处理以避免超出 OpenAI 批次大小限制
+                batch_size = 64  # OpenAI 的最大批次大小限制
+                total_batches = (len(chunks) + batch_size - 1) // batch_size
+
+                for i in range(0, len(chunks), batch_size):
+                    batch_documents = documents[i : i + batch_size]
+                    batch_embeddings = embeddings[i : i + batch_size]
+                    batch_metadatas = metadatas[i : i + batch_size]
+                    batch_ids = ids[i : i + batch_size]
+
+                    await asyncio.to_thread(
+                        collection.add,
+                        documents=batch_documents,
+                        embeddings=batch_embeddings,
+                        metadatas=batch_metadatas,
+                        ids=batch_ids,
+                    )
+                    batch_num = i // batch_size + 1
+                    logger.info(f"Processed batch {batch_num}/{total_batches} for {filename}")
+
+            logger.info(f"Inserted {content_type} {item} into Img_ChromaDB. Done.")
+
+            # 更新状态为完成
+            self.files_meta[file_id]["status"] = "done"
+            self._save_metadata()
+            file_record["status"] = "done"
+
+        except Exception as e:
+            logger.error(f"处理{content_type} {item} 失败: {e}, {traceback.format_exc()}")
+            self.files_meta[file_id]["status"] = "failed"
+            self._save_metadata()
+            file_record["status"] = "failed"
+        finally:
+            self._remove_from_processing_queue(file_id)
+            
+        processed_items_info.append(file_record)
+
+        return processed_items_info
+
+
+
     async def add_image_embeddings(self, db_id: str, item: str, params: dict | None):
         """添加图片嵌入"""
         # 校验格式
@@ -425,13 +593,6 @@ class ChromaKB(KnowledgeBase):
         metadata = prepare_item_metadata(item, content_type, db_id)
         file_id = metadata["file_id"]
         filename = metadata["filename"]
-
-        # 添加文件记录
-        # file_record = metadata.copy()
-            # self.files_meta[file_id] = file_record
-            # self._save_metadata()
-
-            # self._add_to_processing_queue(file_id)
 
         file_path_obj = Path(item)
         file_ext = file_path_obj.suffix.lower()
