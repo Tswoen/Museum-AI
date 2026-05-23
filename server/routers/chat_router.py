@@ -3,8 +3,6 @@ import json
 import traceback
 import uuid
 import yaml
-import os
-import base64
 from pathlib import Path
 
 from fastapi import APIRouter, Body, Depends, HTTPException, UploadFile, File
@@ -18,15 +16,16 @@ from src.storage.conversation import ConversationManager
 from src.storage.db.manager import db_manager
 from server.routers.auth_router import get_admin_user
 from server.utils.auth_middleware import get_db, get_required_user
-from src import executor
 from src import config as conf
 from src.agents import agent_manager
 from src.agents.common.tools import gen_tool_info, get_buildin_tools
 from src.models import select_model
 from src.plugins.guard import content_guard
+from src.chatflow import ChatOrchestrator
 from src.utils.logging_config import logger
 
 chat = APIRouter(prefix="/chat", tags=["chat"])
+chat_orchestrator = ChatOrchestrator()
 
 
 # =============================================================================
@@ -88,20 +87,58 @@ async def set_default_agent(request_data: dict = Body(...), current_user=Depends
 async def call(query: str = Body(...), meta: dict = Body(None), current_user: User = Depends(get_required_user)):
     """调用模型进行简单问答（需要登录）"""
     meta = meta or {}
-    model = select_model(
-        model_provider=meta.get("model_provider"),
-        model_name=meta.get("model_name"),
-        model_spec=meta.get("model_spec") or meta.get("model"),
-    )
+    try:
+        result = await chat_orchestrator.answer(
+            query=query,
+            db_id=meta.get("db_id"),
+            thread_id=meta.get("thread_id"),
+            images=meta.get("images", []),
+            user_id=str(current_user.id),
+            model_provider=meta.get("model_provider"),
+            model_name=meta.get("model_name"),
+            model_spec=meta.get("model_spec") or meta.get("model"),
+            bypass_cache=bool(meta.get("force_refresh") or meta.get("bypass_cache") or meta.get("no_cache")),
+        )
+    except Exception as e:
+        logger.error(f"Chat orchestrator failed, falling back to direct model call: {e}")
+        model = select_model(
+            model_provider=meta.get("model_provider"),
+            model_name=meta.get("model_name"),
+            model_spec=meta.get("model_spec") or meta.get("model"),
+        )
+        response = await asyncio.to_thread(model.call, query)
+        result = {
+            "answer": response.content,
+            "source": "fallback",
+            "intent": None,
+            "db_id": meta.get("db_id"),
+            "references": [],
+        }
 
-    async def call_async(query):
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(executor, model.call, query)
+    if meta.get("thread_id") and meta.get("agent_id"):
+        db = db_manager.get_session()
+        try:
+            await chat_orchestrator.persist_conversation(
+                db_session=db,
+                thread_id=meta.get("thread_id"),
+                user_id=str(current_user.id),
+                agent_id=meta.get("agent_id"),
+                query=query,
+                answer=result["answer"],
+            )
+        finally:
+            db.close()
 
-    response = await call_async(query)
-    logger.debug({"query": query, "response": response.content})
+    logger.debug({"query": query, "response": result["answer"], "source": result.get("source")})
 
-    return {"response": response.content}
+    return {
+        "response": result["answer"],
+        "answer": result["answer"],
+        "source": result.get("source"),
+        "intent": result.get("intent"),
+        "db_id": result.get("db_id"),
+        "references": result.get("references", []),
+    }
 
 
 @chat.get("/agent")

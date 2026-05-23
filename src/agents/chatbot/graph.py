@@ -99,7 +99,7 @@ class ChatbotAgent(BaseAgent):
         builder.add_edge("tools", "chatbot")
         builder.add_edge("chatbot", END)
 
-        self.checkpointer = await self._get_checkpointer()
+        self.checkpointer = await self._get_checkpoinnter()
         graph = builder.compile(checkpointer=self.checkpointer, name=self.name)
         self.graph = graph
         return graph

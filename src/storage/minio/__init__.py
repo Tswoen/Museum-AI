@@ -5,6 +5,7 @@ MinIO 存储模块
 
 # 导出核心功能
 from .client import MinIOClient, StorageError, UploadResult, get_minio_client, upload_image_to_minio
+from .manager import MinIOStorageManager, StoredObject, get_minio_storage_manager
 from .utils import generate_unique_filename, get_file_size
 
 # 为了向后兼容，导出常用的函数
@@ -13,6 +14,9 @@ __all__ = [
     "MinIOClient",
     "get_minio_client",
     "upload_image_to_minio",
+    "MinIOStorageManager",
+    "StoredObject",
+    "get_minio_storage_manager",
     # 异常类
     "StorageError",
     "UploadResult",

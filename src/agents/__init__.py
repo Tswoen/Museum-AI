@@ -1,6 +1,7 @@
 import asyncio
 
 from .chatbot.graph import ChatbotAgent
+from .superAgent.graph import SuperAgent
 from .react.graph import ReActAgent
 
 
@@ -39,6 +40,7 @@ class AgentManager:
 
 agent_manager = AgentManager()
 agent_manager.register_agent(ChatbotAgent)
+agent_manager.register_agent(SuperAgent)
 agent_manager.register_agent(ReActAgent)
 agent_manager.init_all_agents()
 

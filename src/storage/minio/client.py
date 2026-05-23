@@ -10,6 +10,7 @@ from io import BytesIO
 
 from minio import Minio
 from minio.error import S3Error
+from src.config import config
 from src.utils import logger
 
 
@@ -33,17 +34,25 @@ class MinIOClient:
     简化的 MinIO 客户端类
     """
 
-    PUBLIC_READ_BUCKETS = {"generated-images", "avatar"}
+    PUBLIC_READ_BUCKETS = {config.minio_bucket_generated_images or "generated-images", "avatar"}
 
     def __init__(self):
         """初始化 MinIO 客户端"""
-        self.endpoint = os.getenv("MINIO_URI", "http://milvus-minio:9000")
-        self.access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        self.secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
+        self.endpoint = config.minio_uri or os.getenv("MINIO_URI", "http://milvus-minio:9000")
+        self.access_key = config.minio_access_key or os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+        self.secret_key = config.minio_secret_key or os.getenv("MINIO_SECRET_KEY", "minioadmin")
         self._client = None
 
         # 设置公开访问端点
-        if os.getenv("RUNNING_IN_DOCKER"):
+        public_host = (config.minio_public_host or os.getenv("MINIO_PUBLIC_HOST") or "").strip()
+        public_port = config.minio_public_port or os.getenv("MINIO_PUBLIC_PORT", "9000")
+        if public_host:
+            if "://" in public_host:
+                public_host = public_host.split("://")[-1]
+            public_host = public_host.rstrip("/")
+            self.public_endpoint = f"{public_host}:{public_port}"
+            logger.debug(f"Configured MinIOClient public_endpoint: {self.public_endpoint}")
+        elif os.getenv("RUNNING_IN_DOCKER"):
             host_ip = (os.getenv("HOST_IP") or "").strip()
             if not host_ip:
                 host_ip = "localhost"
@@ -140,12 +149,20 @@ class MinIOClient:
             "jpeg": "image/jpeg",
             "png": "image/png",
             "gif": "image/gif",
+            "webp": "image/webp",
             "pdf": "application/pdf",
             "txt": "text/plain",
+            "md": "text/markdown",
             "json": "application/json",
             "html": "text/html",
             "css": "text/css",
             "js": "application/javascript",
+            "doc": "application/msword",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "xls": "application/vnd.ms-excel",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "ppt": "application/vnd.ms-powerpoint",
+            "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         }
         return content_types.get(ext, "application/octet-stream")
 
@@ -228,7 +245,7 @@ def get_minio_client() -> MinIOClient:
     return _default_client
 
 
-def upload_image_to_minio(bucket_name: str, data: bytes, file_extension: str = "jpg") -> str:
+def upload_image_to_minio(data: bytes, file_extension: str = "jpg", bucket_name: str | None = None) -> str:
     """
     上传图片到 MinIO（保持向后兼容）
 
@@ -240,6 +257,7 @@ def upload_image_to_minio(bucket_name: str, data: bytes, file_extension: str = "
         str: 图片访问 URL
     """
     client = get_minio_client()
+    bucket_name = bucket_name or config.minio_bucket_generated_images or "generated-images"
     file_name = f"{uuid.uuid4()}.{file_extension}"
     result = client.upload_file(
         bucket_name=bucket_name, object_name=file_name, data=data, content_type=f"image/{file_extension}"
